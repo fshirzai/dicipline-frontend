@@ -116,10 +116,22 @@ const Footer = styled.div`
 const ErrorMessage = styled.div`
   background: ${props => props.theme.danger}22;
   color: ${props => props.theme.danger};
-  padding: 10px;
+  padding: 12px;
   border-radius: 8px;
   font-size: 0.9rem;
   text-align: center;
+  border-left: 4px solid ${props => props.theme.danger};
+`;
+
+const ValidationErrors = styled.ul`
+  margin: 8px 0 0 0;
+  padding-left: 20px;
+  font-size: 0.85rem;
+  color: ${props => props.theme.danger};
+
+  li {
+    margin-bottom: 4px;
+  }
 `;
 
 const PasswordHint = styled.p`
@@ -134,23 +146,71 @@ const Register = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [validationErrors, setValidationErrors] = useState([]);
   const { register } = useAuth();
   const navigate = useNavigate();
+
+  const validateForm = () => {
+    const errors = [];
+
+    // Username validation
+    if (!username || username.trim().length < 3) {
+      errors.push('Username must be at least 3 characters');
+    } else if (username.length > 30) {
+      errors.push('Username cannot exceed 30 characters');
+    } else if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+      errors.push('Username can only contain letters, numbers, and underscores');
+    }
+
+    // Email validation
+    const emailRegex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
+    if (!email || !emailRegex.test(email)) {
+      errors.push('Please enter a valid email address');
+    }
+
+    // Password validation
+    if (!password || password.length < 6) {
+      errors.push('Password must be at least 6 characters');
+    } else if (!/^(?=.*[A-Za-z])(?=.*\d)/.test(password)) {
+      errors.push('Password must contain at least one letter and one number');
+    }
+
+    setValidationErrors(errors);
+    return errors.length === 0;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setValidationErrors([]);
+
+    // Client-side validation first
+    if (!validateForm()) {
+      return;
+    }
+
     setLoading(true);
 
-    const result = await register(username, email, password);
-    
-    if (result.success) {
-      navigate('/dashboard');
-    } else {
-      setError(result.error || 'Registration failed');
+    try {
+      const result = await register(username.trim(), email.trim().toLowerCase(), password);
+      
+      if (result.success) {
+        navigate('/dashboard');
+      } else {
+        // Check if backend returned validation errors
+        if (result.errors && Array.isArray(result.errors)) {
+          setValidationErrors(result.errors.map(err => 
+            typeof err === 'string' ? err : err.message
+          ));
+        } else {
+          setError(result.error || 'Registration failed. Please try again.');
+        }
+      }
+    } catch (err) {
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   return (
@@ -169,6 +229,8 @@ const Register = () => {
               onChange={(e) => setUsername(e.target.value)}
               required
               minLength={3}
+              maxLength={30}
+              autoComplete="username"
             />
           </InputGroup>
 
@@ -180,6 +242,7 @@ const Register = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              autoComplete="email"
             />
           </InputGroup>
 
@@ -192,12 +255,26 @@ const Register = () => {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
+              autoComplete="new-password"
             />
           </InputGroup>
 
-          <PasswordHint>Must be at least 6 characters</PasswordHint>
+          <PasswordHint>
+            Must be at least 6 characters with at least one letter and one number
+          </PasswordHint>
 
           {error && <ErrorMessage>{error}</ErrorMessage>}
+
+          {validationErrors.length > 0 && (
+            <ErrorMessage>
+              <strong>Please fix the following:</strong>
+              <ValidationErrors>
+                {validationErrors.map((err, i) => (
+                  <li key={i}>{err}</li>
+                ))}
+              </ValidationErrors>
+            </ErrorMessage>
+          )}
 
           <Button type="submit" disabled={loading}>
             {loading ? 'Creating account...' : 'Create Account'}
