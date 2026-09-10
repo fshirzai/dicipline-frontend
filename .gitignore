@@ -1,0 +1,137 @@
+# ============================================
+# DISCIPLINE FRONTEND - .gitignore
+# ============================================
+
+# ============================================
+# Dependencies
+# ============================================
+/node_modules
+/.pnp
+.pnp.js
+.npm
+.yarn/
+.yarnrc.yml
+.yarn-integrity
+yarn-error.log
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# ============================================
+# Testing
+# ============================================
+/coverage
+coverage/
+.nyc_output/
+test-results/
+junit.xml
+__snapshots__/
+
+# ============================================
+# Production Build
+# ============================================
+/build
+/dist
+/out
+*.tsbuildinfo
+
+# ============================================
+# Environment Variables
+# ============================================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+*.env
+
+# ============================================
+# Logs
+# ============================================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.firebase/
+.firebase
+
+# ============================================
+# Editor & IDE
+# ============================================
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+.idea/
+*.iml
+*.ipr
+*.iws
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
+*.swo
+*~
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.tmproj
+
+# ============================================
+# OS Generated Files
+# ============================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# ============================================
+# Cache & Temp
+# ============================================
+.cache/
+.eslintcache
+.stylelintcache
+.node_repl_history
+.npm/
+.temp/
+temp/
+tmp/
+.parcel-cache/
+
+# ============================================
+# Misc
+# ============================================
+*.tgz
+*.tar.gz
+*.zip
+*.rar
+.eslintcache
+.memory/
+.pnp.*
+.pnp.js
+
+# ============================================
+# Keep these files (don't ignore)
+# ============================================
+!.env.example
+!README.md
+!LICENSE
+!package.json
+!public/
+!src/
