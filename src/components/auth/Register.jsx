@@ -128,6 +128,7 @@ const ValidationErrors = styled.ul`
   padding-left: 20px;
   font-size: 0.85rem;
   color: ${props => props.theme.danger};
+  text-align: left;
 
   li {
     margin-bottom: 4px;
@@ -152,14 +153,16 @@ const Register = () => {
 
   const validateForm = () => {
     const errors = [];
+    const trimmedUsername = username.trim();
 
-    // Username validation
-    if (!username || username.trim().length < 3) {
+    // Username validation - more friendly
+    if (!trimmedUsername || trimmedUsername.length < 3) {
       errors.push('Username must be at least 3 characters');
-    } else if (username.length > 30) {
+    } else if (trimmedUsername.length > 30) {
       errors.push('Username cannot exceed 30 characters');
-    } else if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-      errors.push('Username can only contain letters, numbers, and underscores');
+    } else if (!/^[a-zA-Z0-9_.-]+$/.test(trimmedUsername)) {
+      // Allow dots and hyphens too, and lowercase letters
+      errors.push('Username can only contain letters, numbers, dots, hyphens, and underscores');
     }
 
     // Email validation
@@ -184,7 +187,6 @@ const Register = () => {
     setError('');
     setValidationErrors([]);
 
-    // Client-side validation first
     if (!validateForm()) {
       return;
     }
@@ -192,16 +194,21 @@ const Register = () => {
     setLoading(true);
 
     try {
-      const result = await register(username.trim(), email.trim().toLowerCase(), password);
-      
+      const result = await register(
+        username.trim(),
+        email.trim().toLowerCase(),
+        password
+      );
+
       if (result.success) {
         navigate('/dashboard');
       } else {
-        // Check if backend returned validation errors
         if (result.errors && Array.isArray(result.errors)) {
-          setValidationErrors(result.errors.map(err => 
-            typeof err === 'string' ? err : err.message
-          ));
+          setValidationErrors(
+            result.errors.map((err) =>
+              typeof err === 'string' ? err : err.message
+            )
+          );
         } else {
           setError(result.error || 'Registration failed. Please try again.');
         }
@@ -221,7 +228,9 @@ const Register = () => {
 
         <Form onSubmit={handleSubmit}>
           <InputGroup>
-            <InputIcon><FiUser /></InputIcon>
+            <InputIcon>
+              <FiUser />
+            </InputIcon>
             <Input
               type="text"
               placeholder="Username"
@@ -235,7 +244,9 @@ const Register = () => {
           </InputGroup>
 
           <InputGroup>
-            <InputIcon><FiMail /></InputIcon>
+            <InputIcon>
+              <FiMail />
+            </InputIcon>
             <Input
               type="email"
               placeholder="Email"
@@ -247,7 +258,9 @@ const Register = () => {
           </InputGroup>
 
           <InputGroup>
-            <InputIcon><FiLock /></InputIcon>
+            <InputIcon>
+              <FiLock />
+            </InputIcon>
             <Input
               type="password"
               placeholder="Password"
@@ -260,7 +273,8 @@ const Register = () => {
           </InputGroup>
 
           <PasswordHint>
-            Must be at least 6 characters with at least one letter and one number
+            Must be at least 6 characters with at least one letter and one
+            number
           </PasswordHint>
 
           {error && <ErrorMessage>{error}</ErrorMessage>}

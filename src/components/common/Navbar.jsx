@@ -1,15 +1,12 @@
 import React from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import styled from "styled-components";
 import { useAuth } from "../../hooks/useAuth";
-import { useTheme } from "../../context/ThemeContext";
 import {
   FiHome,
   FiBook,
   FiBookOpen,
   FiTarget,
-  FiMoon,
-  FiSun,
   FiLogOut,
   FiUser,
   FiCalendar,
@@ -116,23 +113,16 @@ const LogoutButton = styled.button`
   }
 `;
 
-const MobileMenuButton = styled.button`
-  background: transparent;
-  border: none;
-  color: ${(props) => props.theme.navbarText};
-  font-size: 1.5rem;
-  cursor: pointer;
-  display: none;
-
-  @media (max-width: 768px) {
-    display: block;
-  }
-`;
-
 const Navbar = () => {
   const { user, logout } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Hide the navbar entirely on login/register pages
+  const authPages = ["/login", "/register"];
+  if (authPages.includes(location.pathname)) {
+    return null;
+  }
 
   const handleLogout = () => {
     logout();

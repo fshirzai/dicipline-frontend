@@ -2,7 +2,6 @@ import React, { createContext, useState, useEffect, useContext } from 'react';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 
-// Export the context so useAuth can import it
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
@@ -24,8 +23,11 @@ export const AuthProvider = ({ children }) => {
       const response = await api.get('/auth/me');
       setUser(response.data.user);
     } catch (error) {
-      console.error('Fetch user error:', error);
-      logout();
+      console.error('Fetch user error:', error.response?.data || error.message);
+      // Clear invalid token silently (no toast — this is background fetch)
+      localStorage.removeItem('discipline-token');
+      setToken(null);
+      setUser(null);
     } finally {
       setLoading(false);
     }
@@ -35,57 +37,71 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await api.post('/auth/login', { email, password });
       const { token, user } = response.data;
-      
+
       localStorage.setItem('discipline-token', token);
-      setToken(token);
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      setToken(token);
       setUser(user);
-      
-      toast.success('Welcome back!');
+
       return { success: true };
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Login failed');
-      return { success: false, error: error.response?.data?.message };
+      const message =
+        error.response?.data?.message ||
+        error.message ||
+        'Login failed. Please try again.';
+
+      return { success: false, error: message };
     }
   };
 
   const register = async (username, email, password) => {
     try {
-      const response = await api.post('/auth/register', { username, email, password });
+      const response = await api.post('/auth/register', {
+        username,
+        email,
+        password,
+      });
+
       const { token, user } = response.data;
-      
+
       localStorage.setItem('discipline-token', token);
-      setToken(token);
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      setToken(token);
       setUser(user);
-      
-      toast.success('Account created successfully!');
+
       return { success: true };
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Registration failed');
-      return { success: false, error: error.response?.data?.message };
+      const message =
+        error.response?.data?.message ||
+        error.message ||
+        'Registration failed. Please try again.';
+
+      const errors = error.response?.data?.errors;
+
+      return { success: false, error: message, errors };
     }
   };
 
   const logout = () => {
     localStorage.removeItem('discipline-token');
+    delete api.defaults.headers.common['Authorization'];
     setToken(null);
     setUser(null);
-    delete api.defaults.headers.common['Authorization'];
-    toast.success('Logged out successfully');
   };
 
   const isAuthenticated = !!user && !!token;
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      loading,
-      login,
-      register,
-      logout,
-      isAuthenticated,
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        login,
+        register,
+        logout,
+        isAuthenticated,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

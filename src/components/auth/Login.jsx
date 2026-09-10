@@ -9,30 +9,30 @@ const Container = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  background: ${props => props.theme.background};
+  background: ${(props) => props.theme.background};
   padding: 20px;
 `;
 
 const FormCard = styled.div`
-  background: ${props => props.theme.surface};
+  background: ${(props) => props.theme.surface};
   padding: 50px 40px;
   border-radius: 16px;
   width: 100%;
   max-width: 420px;
-  box-shadow: ${props => props.theme.shadow};
-  border: 1px solid ${props => props.theme.border};
+  box-shadow: ${(props) => props.theme.shadow};
+  border: 1px solid ${(props) => props.theme.border};
   animation: fadeIn 0.5s ease;
 `;
 
 const Title = styled.h1`
   font-size: 2rem;
-  color: ${props => props.theme.text};
+  color: ${(props) => props.theme.text};
   margin-bottom: 8px;
   text-align: center;
 `;
 
 const Subtitle = styled.p`
-  color: ${props => props.theme.textSecondary};
+  color: ${(props) => props.theme.textSecondary};
   text-align: center;
   margin-bottom: 30px;
   font-size: 0.95rem;
@@ -53,29 +53,29 @@ const InputIcon = styled.span`
   left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: ${props => props.theme.textSecondary};
+  color: ${(props) => props.theme.textSecondary};
 `;
 
 const Input = styled.input`
   width: 100%;
   padding: 12px 12px 12px 42px;
-  background: ${props => props.theme.inputBg};
-  border: 1px solid ${props => props.theme.border};
+  background: ${(props) => props.theme.inputBg};
+  border: 1px solid ${(props) => props.theme.border};
   border-radius: 8px;
-  color: ${props => props.theme.text};
+  color: ${(props) => props.theme.text};
   font-size: 1rem;
   transition: all 0.2s;
 
   &:focus {
     outline: none;
-    border-color: ${props => props.theme.primary};
-    box-shadow: 0 0 0 3px ${props => props.theme.primary}33;
+    border-color: ${(props) => props.theme.primary};
+    box-shadow: 0 0 0 3px ${(props) => props.theme.primary}33;
   }
 `;
 
 const Button = styled.button`
   padding: 12px;
-  background: ${props => props.theme.primary};
+  background: ${(props) => props.theme.primary};
   color: white;
   border: none;
   border-radius: 8px;
@@ -85,9 +85,9 @@ const Button = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background: ${props => props.theme.primaryDark};
+    background: ${(props) => props.theme.primaryDark};
     transform: translateY(-2px);
-    box-shadow: ${props => props.theme.shadowHover};
+    box-shadow: ${(props) => props.theme.shadowHover};
   }
 
   &:disabled {
@@ -100,10 +100,10 @@ const Button = styled.button`
 const Footer = styled.div`
   text-align: center;
   margin-top: 20px;
-  color: ${props => props.theme.textSecondary};
+  color: ${(props) => props.theme.textSecondary};
 
   a {
-    color: ${props => props.theme.primary};
+    color: ${(props) => props.theme.primary};
     text-decoration: none;
     font-weight: 600;
 
@@ -114,12 +114,13 @@ const Footer = styled.div`
 `;
 
 const ErrorMessage = styled.div`
-  background: ${props => props.theme.danger}22;
-  color: ${props => props.theme.danger};
+  background: ${(props) => props.theme.danger}22;
+  color: ${(props) => props.theme.danger};
   padding: 10px;
   border-radius: 8px;
   font-size: 0.9rem;
   text-align: center;
+  border-left: 4px solid ${(props) => props.theme.danger};
 `;
 
 const Login = () => {
@@ -135,15 +136,19 @@ const Login = () => {
     setError('');
     setLoading(true);
 
-    const result = await login(email, password);
-    
-    if (result.success) {
-      navigate('/dashboard');
-    } else {
-      setError(result.error || 'Login failed');
+    try {
+      const result = await login(email.trim().toLowerCase(), password);
+
+      if (result.success) {
+        navigate('/dashboard');
+      } else {
+        setError(result.error || 'Login failed');
+      }
+    } catch (err) {
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   return (
@@ -154,24 +159,30 @@ const Login = () => {
 
         <Form onSubmit={handleSubmit}>
           <InputGroup>
-            <InputIcon><FiMail /></InputIcon>
+            <InputIcon>
+              <FiMail />
+            </InputIcon>
             <Input
               type="email"
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              autoComplete="email"
             />
           </InputGroup>
 
           <InputGroup>
-            <InputIcon><FiLock /></InputIcon>
+            <InputIcon>
+              <FiLock />
+            </InputIcon>
             <Input
               type="password"
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              autoComplete="current-password"
             />
           </InputGroup>
 
