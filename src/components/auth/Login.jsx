@@ -140,7 +140,7 @@ const Login = () => {
       const result = await login(email.trim().toLowerCase(), password);
 
       if (result.success) {
-        navigate('/dashboard');
+        navigate('/home');
       } else {
         setError(result.error || 'Login failed');
       }

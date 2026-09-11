@@ -201,7 +201,7 @@ const Register = () => {
       );
 
       if (result.success) {
-        navigate('/dashboard');
+        navigate('/home');
       } else {
         if (result.errors && Array.isArray(result.errors)) {
           setValidationErrors(
