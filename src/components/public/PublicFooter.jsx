@@ -449,7 +449,7 @@ const PublicFooter = () => {
       <Bottom>
         <div>© {year} Discipline. All rights reserved.</div>
         <MadeWith>
-          Made with <FiHeart size={14} /> by Fiazullah Shirzai
+          Made with <FiHeart size={14} /> by IFtech
         </MadeWith>
         <BottomLinks>
           <Link to="/about">Privacy</Link>
