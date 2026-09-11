@@ -968,7 +968,7 @@ const Dashboard = () => {
       <MotivationBanner>
         <div className="icon">💡</div>
         <div className="content">
-          <div className="label">Today's Motivation</div>
+         
           <div className="sentence">{getDailyMotivation()}</div>
         </div>
       </MotivationBanner>
