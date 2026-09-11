@@ -67,7 +67,7 @@ const AdminRoute = ({ children }) => {
   }
 
   if (!isAuthenticated || user?.role !== "admin") {
-    return <Navigate to="/dashboard" />;
+    return <Navigate to="/home" />;
   }
 
   return children;
@@ -101,13 +101,13 @@ function App() {
               path="/"
               element={
                 <ProtectedRoute>
-                  <Navigate to="/dashboard" />
+                  <Navigate to="/home" />
                 </ProtectedRoute>
               }
             />
 
             <Route
-              path="/dashboard"
+              path="/home"
               element={
                 <ProtectedRoute>
                   <Dashboard />
