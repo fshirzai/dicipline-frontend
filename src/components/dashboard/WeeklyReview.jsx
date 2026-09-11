@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import api from '../../services/api';
-import { format, addDays, subDays } from 'date-fns';
+import { format, addDays } from 'date-fns';
 import {
-  FiTrendingUp,
   FiCheckCircle,
   FiXCircle,
   FiClock,
@@ -12,7 +11,6 @@ import {
   FiBook,
   FiBookOpen,
   FiTarget,
-  FiCalendar,
   FiMoon,
 } from 'react-icons/fi';
 import {
@@ -226,6 +224,10 @@ const DayCard = styled.div`
     h4 {
       color: ${(props) => props.theme.text};
       font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
     }
 
     .completion-badge {
@@ -301,19 +303,43 @@ const DayItem = styled.div`
   }
 `;
 
-const COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444'];
+const AxisHint = styled.div`
+  font-size: 0.7rem;
+  color: ${(props) => props.theme.textSecondary};
+  text-align: center;
+  margin-top: 4px;
+  font-style: italic;
+`;
 
-// Islamic week order: Saturday first
-const getIslamicWeekDays = (startDate) => {
-  // Return the 7 days starting from the given start date
-  // (the weekly review endpoint already returns Sat→Fri order)
-  return Array.from({ length: 7 }, (_, i) => addDays(new Date(startDate), i));
-};
+const COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444'];
 
 const WeeklyReview = () => {
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [reviewData, setReviewData] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Detect theme to color chart axes properly
+  const [theme, setTheme] = useState('dark');
+  useEffect(() => {
+    const saved = localStorage.getItem('discipline-theme') || 'light';
+    setTheme(saved);
+
+    // Watch for theme changes
+    const observer = new MutationObserver(() => {
+      const current = localStorage.getItem('discipline-theme') || 'light';
+      setTheme(current);
+    });
+    observer.observe(document.body, { attributes: true });
+
+    return () => observer.disconnect();
+  }, []);
+
+  const isDark = theme === 'dark';
+  const axisColor = isDark ? '#9ca3af' : '#4b5563';
+  const gridColor = isDark ? '#2a3a5a' : '#e5e7eb';
+  const tooltipBg = isDark ? '#141b2b' : '#ffffff';
+  const tooltipBorder = isDark ? '#2a3a5a' : '#e5e7eb';
+  const tooltipText = isDark ? '#e5e7eb' : '#1a1a2e';
 
   useEffect(() => {
     fetchWeeklyReview();
@@ -322,8 +348,7 @@ const WeeklyReview = () => {
   const fetchWeeklyReview = async () => {
     try {
       setLoading(true);
-      // Anchor week to Saturday (Islamic week start)
-      const day = currentWeek.getDay(); // 0=Sun, 6=Sat
+      const day = currentWeek.getDay();
       const daysSinceSaturday = (day + 1) % 7;
       const saturday = new Date(currentWeek);
       saturday.setDate(saturday.getDate() - daysSinceSaturday);
@@ -346,25 +371,19 @@ const WeeklyReview = () => {
     setCurrentWeek(newWeek);
   };
 
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-
-  if (!reviewData) {
-    return <div>No data available</div>;
-  }
+  if (loading) return <div>Loading...</div>;
+  if (!reviewData) return <div>No data available</div>;
 
   const { summary, dailyData } = reviewData;
 
-  // Reorder dailyData: Saturday first, Friday last
+  // Reorder dailyData: Saturday first
   const orderedDays = [...dailyData].sort((a, b) => {
     const da = new Date(a.date).getDay();
     const db = new Date(b.date).getDay();
-    const order = { 6: 0, 0: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 6 }; // Sat=0..Fri=6
+    const order = { 6: 0, 0: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 6 };
     return order[da] - order[db];
   });
 
-  // Chart data in same order
   const dailyChartData = orderedDays.map((day) => ({
     date: format(new Date(day.date), 'EEE'),
     completed:
@@ -378,7 +397,63 @@ const WeeklyReview = () => {
     { name: 'Missed', value: summary.overall.missed || 0 },
   ];
 
-  // Task-type breakdown for the left-side mini list
+  // Custom tooltip for pie chart — shows name + value + percent
+  const CustomPieTooltip = ({ active, payload }) => {
+    if (!active || !payload || !payload.length) return null;
+    const data = payload[0];
+    const total = pieData.reduce((s, p) => s + p.value, 0);
+    const percent = total > 0 ? ((data.value / total) * 100).toFixed(0) : 0;
+
+    return (
+      <div
+        style={{
+          background: tooltipBg,
+          border: `1px solid ${tooltipBorder}`,
+          borderRadius: '8px',
+          padding: '8px 12px',
+          color: tooltipText,
+          fontSize: '0.85rem',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+        }}
+      >
+        <div style={{ fontWeight: 700, color: data.payload.fill }}>
+          {data.name}
+        </div>
+        <div>
+          Count: <strong>{data.value}</strong>
+        </div>
+        <div>Percentage: {percent}%</div>
+      </div>
+    );
+  };
+
+  // Custom tooltip for area chart
+  const CustomAreaTooltip = ({ active, payload, label }) => {
+    if (!active || !payload || !payload.length) return null;
+    return (
+      <div
+        style={{
+          background: tooltipBg,
+          border: `1px solid ${tooltipBorder}`,
+          borderRadius: '8px',
+          padding: '8px 12px',
+          color: tooltipText,
+          fontSize: '0.85rem',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+        }}
+      >
+        <div style={{ fontWeight: 700, marginBottom: '4px' }}>
+          {label}
+        </div>
+        {payload.map((p, i) => (
+          <div key={i} style={{ color: p.color }}>
+            {p.name}: <strong>{p.value}</strong>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   const taskBreakdown = [
     {
       type: 'topic',
@@ -467,44 +542,64 @@ const WeeklyReview = () => {
       </SummaryGrid>
 
       <ChartsContainer>
-        {/* Daily Progress chart with task list on the side */}
         <ChartCard>
           <h3>Daily Progress</h3>
           <ChartAndTasks>
-            <ResponsiveContainer width="100%" height={250}>
-              <AreaChart data={dailyChartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#2a3a5a" />
-                <XAxis dataKey="date" stroke="#9ca3af" />
-                <YAxis stroke="#9ca3af" />
-                <Tooltip
-                  contentStyle={{
-                    background: '#141b2b',
-                    border: '1px solid #2a3a5a',
-                    borderRadius: '8px',
-                  }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="completed"
-                  stackId="1"
-                  stroke="#4f46e5"
-                  fill="#4f46e5"
-                  fillOpacity={0.6}
-                  name="Completed"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="total"
-                  stackId="2"
-                  stroke="#10b981"
-                  fill="#10b981"
-                  fillOpacity={0.3}
-                  name="Total"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+            <div>
+              <ResponsiveContainer width="100%" height={250}>
+                <AreaChart
+                  data={dailyChartData}
+                  margin={{ top: 10, right: 10, left: 0, bottom: 20 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+                  <XAxis
+                    dataKey="date"
+                    stroke={axisColor}
+                    tick={{ fill: axisColor, fontSize: 12 }}
+                    label={{
+                      value: 'Day of Week',
+                      position: 'insideBottom',
+                      offset: -10,
+                      fill: axisColor,
+                      fontSize: 12,
+                    }}
+                  />
+                  <YAxis
+                    stroke={axisColor}
+                    tick={{ fill: axisColor, fontSize: 12 }}
+                    label={{
+                      value: 'Number of Items',
+                      angle: -90,
+                      position: 'insideLeft',
+                      style: { textAnchor: 'middle', fill: axisColor, fontSize: 12 },
+                    }}
+                  />
+                  <Tooltip content={<CustomAreaTooltip />} />
+                  <Area
+                    type="monotone"
+                    dataKey="completed"
+                    stackId="1"
+                    stroke="#4f46e5"
+                    fill="#4f46e5"
+                    fillOpacity={0.6}
+                    name="Completed"
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="total"
+                    stackId="2"
+                    stroke="#10b981"
+                    fill="#10b981"
+                    fillOpacity={0.3}
+                    name="Total"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+              <AxisHint>
+                Vertical axis: number of items • Horizontal axis: day of week
+              </AxisHint>
+            </div>
 
-            {/* Tasks that make up the counts */}
             <TaskMiniList>
               {taskBreakdown.map((item, i) => (
                 <TaskMiniItem key={i} type={item.type}>
@@ -519,10 +614,9 @@ const WeeklyReview = () => {
           </ChartAndTasks>
         </ChartCard>
 
-        {/* Pie chart with proper labels */}
         <ChartCard>
           <h3>Distribution</h3>
-          <ResponsiveContainer width="100%" height={250}>
+          <ResponsiveContainer width="100%" height={280}>
             <PieChart>
               <Pie
                 data={pieData}
@@ -532,6 +626,7 @@ const WeeklyReview = () => {
                 outerRadius={85}
                 paddingAngle={4}
                 dataKey="value"
+                nameKey="name"
                 label={({ name, value, percent }) =>
                   value > 0
                     ? `${name}: ${value} (${(percent * 100).toFixed(0)}%)`
@@ -546,19 +641,13 @@ const WeeklyReview = () => {
                   />
                 ))}
               </Pie>
-              <Tooltip
-                contentStyle={{
-                  background: '#141b2b',
-                  border: '1px solid #2a3a5a',
-                  borderRadius: '8px',
-                }}
-              />
+              <Tooltip content={<CustomPieTooltip />} />
               <Legend
                 verticalAlign="bottom"
                 height={36}
                 iconType="circle"
                 formatter={(value) => (
-                  <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>
+                  <span style={{ color: axisColor, fontSize: '0.85rem' }}>
                     {value}
                   </span>
                 )}
@@ -587,7 +676,6 @@ const WeeklyReview = () => {
                 {new Date(day.date).getDay() === 5 && (
                   <span
                     style={{
-                      marginLeft: '8px',
                       fontSize: '0.7rem',
                       background: '#f59e0b33',
                       color: '#f59e0b',
