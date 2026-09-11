@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useAuth } from '../../hooks/useAuth';
+import { useTheme } from '../../context/ThemeContext';
 import api from '../../services/api';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -28,7 +29,6 @@ import {
   PieChart,
   Pie,
   Cell,
-  Legend,
 } from 'recharts';
 import { format } from 'date-fns';
 
@@ -183,8 +183,8 @@ const TaskItem = styled.div`
   border-radius: 8px;
   border-left: 4px solid
     ${(props) => {
-      if (props.status === 'complete') return props.theme.success;
-      if (props.status === 'missed') return props.theme.danger;
+      if (props.$status === 'complete') return props.theme.success;
+      if (props.$status === 'missed') return props.theme.danger;
       return props.theme.warning;
     }};
   transition: all 0.2s;
@@ -206,10 +206,10 @@ const TaskItem = styled.div`
     font-size: 1rem;
     flex-shrink: 0;
     color: ${(props) => {
-      if (props.type === 'topic') return '#4f46e5';
-      if (props.type === 'session') return '#10b981';
-      if (props.type === 'task') return '#f59e0b';
-      if (props.type === 'prayer') return '#8b5cf6';
+      if (props.$type === 'topic') return '#4f46e5';
+      if (props.$type === 'session') return '#10b981';
+      if (props.$type === 'task') return '#f59e0b';
+      if (props.$type === 'prayer') return '#8b5cf6';
       return '#6b7280';
     }};
   }
@@ -266,13 +266,13 @@ const StatusBadge = styled.span`
   font-weight: 600;
   white-space: nowrap;
   background: ${(props) => {
-    if (props.status === 'complete') return props.theme.success + '33';
-    if (props.status === 'missed') return props.theme.danger + '33';
+    if (props.$status === 'complete') return props.theme.success + '33';
+    if (props.$status === 'missed') return props.theme.danger + '33';
     return props.theme.warning + '33';
   }};
   color: ${(props) => {
-    if (props.status === 'complete') return props.theme.success;
-    if (props.status === 'missed') return props.theme.danger;
+    if (props.$status === 'complete') return props.theme.success;
+    if (props.$status === 'missed') return props.theme.danger;
     return props.theme.warning;
   }};
 
@@ -285,11 +285,11 @@ const CompleteButton = styled.button`
   padding: 3px 10px;
   border: 2px solid
     ${(props) =>
-      props.status === 'complete' ? props.theme.success : props.theme.border};
+      props.$status === 'complete' ? props.theme.success : props.theme.border};
   background: ${(props) =>
-    props.status === 'complete' ? props.theme.success + '33' : 'transparent'};
+    props.$status === 'complete' ? props.theme.success + '33' : 'transparent'};
   color: ${(props) =>
-    props.status === 'complete'
+    props.$status === 'complete'
       ? props.theme.success
       : props.theme.textSecondary};
   border-radius: 6px;
@@ -306,13 +306,13 @@ const CompleteButton = styled.button`
   &:hover {
     background: ${(props) => {
       if (props.disabled) return 'transparent';
-      if (props.status === 'complete') return props.theme.success;
+      if (props.$status === 'complete') return props.theme.success;
       return props.theme.primary;
     }};
     color: ${(props) => (props.disabled ? props.theme.textSecondary : 'white')};
     border-color: ${(props) => {
       if (props.disabled) return props.theme.border;
-      if (props.status === 'complete') return props.theme.success;
+      if (props.$status === 'complete') return props.theme.success;
       return props.theme.primary;
     }};
   }
@@ -440,16 +440,16 @@ const PrayerStatusItem = styled.div`
   font-size: 0.8rem;
   font-weight: 500;
   background: ${(props) =>
-    props.status === 'complete'
+    props.$status === 'complete'
       ? '#10b98122'
-      : props.status === 'missed'
+      : props.$status === 'missed'
       ? '#ef444422'
       : '#f59e0b22'};
   border: 2px solid
     ${(props) =>
-      props.status === 'complete'
+      props.$status === 'complete'
         ? '#10b981'
-        : props.status === 'missed'
+        : props.$status === 'missed'
         ? '#ef4444'
         : '#f59e0b'};
 
@@ -458,22 +458,129 @@ const PrayerStatusItem = styled.div`
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: ${(props) => props.color};
+    background: ${(props) => props.$color};
     margin-right: 6px;
   }
 
   .status-icon {
     font-weight: 700;
     color: ${(props) =>
-      props.status === 'complete'
+      props.$status === 'complete'
         ? '#10b981'
-        : props.status === 'missed'
+        : props.$status === 'missed'
         ? '#ef4444'
         : '#f59e0b'};
   }
 `;
 
-const COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444'];
+const TooltipBox = styled.div`
+  background: ${(props) => props.theme.surface};
+  border: 1px solid ${(props) => props.theme.border};
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  color: ${(props) => props.theme.text};
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  min-width: 120px;
+
+  .label {
+    font-weight: 700;
+    font-size: 0.9rem;
+    margin-bottom: 6px;
+    color: ${(props) => props.theme.text};
+    border-bottom: 1px solid ${(props) => props.theme.border};
+    padding-bottom: 4px;
+  }
+
+  .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 0.82rem;
+    margin-top: 4px;
+  }
+
+  .row-name {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: ${(props) => props.theme.text};
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .value {
+    font-weight: 700;
+    color: ${(props) => props.theme.text};
+  }
+`;
+
+const PieLegend = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 14px;
+  padding: 0 8px;
+`;
+
+const PieLegendItem = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  background: ${(props) => props.theme.surface2};
+  border-radius: 8px;
+  font-size: 0.85rem;
+
+  .left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: ${(props) => props.theme.text};
+    font-weight: 600;
+  }
+
+  .dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    background: ${(props) => props.$color};
+    flex-shrink: 0;
+  }
+
+  .right {
+    color: ${(props) => props.theme.textSecondary};
+    font-size: 0.82rem;
+  }
+
+  .value {
+    color: ${(props) => props.theme.text};
+    font-weight: 700;
+    margin-right: 4px;
+  }
+`;
+
+const AxisCaption = styled.div`
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding: 0 12px;
+  font-size: 0.72rem;
+  color: ${(props) => props.theme.textSecondary};
+
+  strong {
+    color: ${(props) => props.theme.text};
+  }
+`;
+
+const COLORS = ['#4f46e5', '#f59e0b', '#ef4444'];
 
 const PrayerColors = {
   fajer: '#fcd34d',
@@ -491,13 +598,63 @@ const PrayerLabels = {
   isha: 'Isha',
 };
 
+// Custom Tooltips
+const LineChartTooltip = ({ active, payload, label }) => {
+  if (!active || !payload || !payload.length) return null;
+
+  return (
+    <TooltipBox>
+      <div className="label">{label}</div>
+      {payload.map((p, i) => (
+        <div key={i} className="row">
+          <span className="row-name">
+            <span className="dot" style={{ background: p.color }} />
+            {p.name}
+          </span>
+          <span className="value">{p.value}</span>
+        </div>
+      ))}
+    </TooltipBox>
+  );
+};
+
+const PieChartTooltip = ({ active, payload, total }) => {
+  if (!active || !payload || !payload.length) return null;
+
+  const item = payload[0];
+  const value = item.value;
+  const percent = total > 0 ? ((value / total) * 100).toFixed(0) : 0;
+
+  return (
+    <TooltipBox>
+      <div className="label">{item.name}</div>
+      <div className="row">
+        <span className="row-name">
+          <span className="dot" style={{ background: item.payload?.color }} />
+          Tasks
+        </span>
+        <span className="value">{value}</span>
+      </div>
+      <div className="row">
+        <span className="row-name">Percentage</span>
+        <span className="value">{percent}%</span>
+      </div>
+    </TooltipBox>
+  );
+};
+
 const Dashboard = () => {
   const { user } = useAuth();
+  const { theme } = useTheme();
   const [stats, setStats] = useState(null);
   const [dailyTasks, setDailyTasks] = useState([]);
   const [dailyProgress, setDailyProgress] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+
+  const isDark = theme === 'dark';
+  const axisColor = isDark ? '#e5e7eb' : '#374151';
+  const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
 
   useEffect(() => {
     fetchDashboardData();
@@ -659,11 +816,13 @@ const Dashboard = () => {
 
   const pieData = stats
     ? [
-        { name: 'Completed', value: stats.totalCompleted || 0 },
-        { name: 'Pending', value: stats.totalPending || 0 },
-        { name: 'Missed', value: stats.totalMissed || 0 },
-      ]
+        { name: 'Completed', value: stats.totalCompleted || 0, color: '#4f46e5' },
+        { name: 'Pending', value: stats.totalPending || 0, color: '#f59e0b' },
+        { name: 'Missed', value: stats.totalMissed || 0, color: '#ef4444' },
+      ].filter((d) => d.value > 0)
     : [];
+
+  const pieTotal = pieData.reduce((s, p) => s + p.value, 0);
 
   const completedCount = dailyTasks.filter((t) => t.status === 'complete').length;
   const totalCount = dailyTasks.length;
@@ -748,7 +907,7 @@ const Dashboard = () => {
             ) : (
               <TaskList>
                 {dailyTasks.map((task) => (
-                  <TaskItem key={task.id} status={task.status} type={task.type}>
+                  <TaskItem key={task.id} $status={task.status} $type={task.type}>
                     <div className="task-info">
                       <span className="task-icon">{task.icon}</span>
                       <div className="task-details">
@@ -765,7 +924,7 @@ const Dashboard = () => {
                       </div>
                     </div>
                     <div className="task-actions">
-                      <StatusBadge status={task.status}>
+                      <StatusBadge $status={task.status}>
                         {task.status === 'complete'
                           ? '✅'
                           : task.status === 'missed'
@@ -773,7 +932,7 @@ const Dashboard = () => {
                           : '⏳'}
                       </StatusBadge>
                       <CompleteButton
-                        status={task.status}
+                        $status={task.status}
                         disabled={task.status === 'missed' || updating}
                         onClick={() =>
                           updateTaskStatus(
@@ -866,8 +1025,8 @@ const Dashboard = () => {
                 .map((prayer) => (
                   <PrayerStatusItem
                     key={prayer.id}
-                    status={prayer.status}
-                    color={PrayerColors[prayer.prayerName]}
+                    $status={prayer.status}
+                    $color={PrayerColors[prayer.prayerName]}
                   >
                     <span
                       style={{
@@ -897,19 +1056,29 @@ const Dashboard = () => {
       </MainGrid>
 
       <ChartsContainer>
+        {/* Weekly Progress - Line Chart */}
         <ChartCard>
           <h3>📈 Weekly Progress</h3>
-          <ResponsiveContainer width="100%" height={230}>
-            <LineChart data={dailyProgress}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#2a3a5a" />
-              <XAxis dataKey="date" stroke="#9ca3af" />
-              <YAxis stroke="#9ca3af" />
+          <ResponsiveContainer width="100%" height={250}>
+            <LineChart
+              data={dailyProgress}
+              margin={{ top: 15, right: 15, left: 5, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+              <XAxis
+                dataKey="date"
+                tick={{ fill: axisColor, fontSize: 13, fontWeight: 600 }}
+                axisLine={{ stroke: axisColor }}
+                tickLine={{ stroke: axisColor }}
+              />
+              <YAxis
+                tick={{ fill: axisColor, fontSize: 12, fontWeight: 600 }}
+                axisLine={{ stroke: axisColor }}
+                tickLine={{ stroke: axisColor }}
+              />
               <Tooltip
-                contentStyle={{
-                  background: '#141b2b',
-                  border: '1px solid #2a3a5a',
-                  borderRadius: '8px',
-                }}
+                content={<LineChartTooltip />}
+                cursor={{ stroke: axisColor, strokeOpacity: 0.3 }}
               />
               <Line
                 type="monotone"
@@ -929,53 +1098,78 @@ const Dashboard = () => {
               />
             </LineChart>
           </ResponsiveContainer>
+          <AxisCaption>
+            <span>
+              <strong>Vertical:</strong> Number of tasks
+            </span>
+            <span>
+              <strong>Horizontal:</strong> Day of week
+            </span>
+          </AxisCaption>
         </ChartCard>
 
+        {/* Overall Distribution - Pie */}
         <ChartCard>
           <h3>📊 Overall Distribution</h3>
-          <ResponsiveContainer width="100%" height={230}>
-            <PieChart>
-              <Pie
-                data={pieData}
-                cx="50%"
-                cy="50%"
-                innerRadius={50}
-                outerRadius={75}
-                paddingAngle={4}
-                dataKey="value"
-                label={({ name, value, percent }) =>
-                  value > 0
-                    ? `${name}: ${value} (${(percent * 100).toFixed(0)}%)`
-                    : ''
-                }
-                labelLine={false}
-              >
-                {pieData.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={COLORS[index % COLORS.length]}
-                  />
-                ))}
-              </Pie>
-              <Tooltip
-                contentStyle={{
-                  background: '#141b2b',
-                  border: '1px solid #2a3a5a',
-                  borderRadius: '8px',
-                }}
-              />
-              <Legend
-                verticalAlign="bottom"
-                height={30}
-                iconType="circle"
-                formatter={(value) => (
-                  <span style={{ color: '#9ca3af', fontSize: '0.8rem' }}>
-                    {value}
-                  </span>
-                )}
-              />
-            </PieChart>
-          </ResponsiveContainer>
+          {pieData.length === 0 ? (
+            <div
+              style={{
+                textAlign: 'center',
+                padding: '60px 20px',
+                opacity: 0.6,
+                color: axisColor,
+              }}
+            >
+              No data this week
+            </div>
+          ) : (
+            <>
+              <ResponsiveContainer width="100%" height={220}>
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={75}
+                    paddingAngle={4}
+                    dataKey="value"
+                    nameKey="name"
+                  >
+                    {pieData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={entry.color}
+                        stroke="transparent"
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<PieChartTooltip total={pieTotal} />} />
+                </PieChart>
+              </ResponsiveContainer>
+
+              <PieLegend>
+                {pieData.map((item, i) => {
+                  const percent =
+                    pieTotal > 0
+                      ? ((item.value / pieTotal) * 100).toFixed(0)
+                      : 0;
+                  return (
+                    <PieLegendItem key={i} $color={item.color}>
+                      <span className="left">
+                        <span className="dot" />
+                        {item.name}
+                      </span>
+                      <span className="right">
+                        <span className="value">{item.value}</span>
+                        ({percent}%)
+                      </span>
+                    </PieLegendItem>
+                  );
+                })}
+              </PieLegend>
+            </>
+          )}
         </ChartCard>
       </ChartsContainer>
     </Container>

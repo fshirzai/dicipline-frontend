@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { useTheme } from '../../context/ThemeContext';
 import api from '../../services/api';
-import { format, addDays } from 'date-fns';
+import { format } from 'date-fns';
 import {
   FiCheckCircle,
   FiXCircle,
@@ -24,7 +25,6 @@ import {
   PieChart,
   Pie,
   Cell,
-  Legend,
 } from 'recharts';
 
 const Container = styled.div`
@@ -206,6 +206,101 @@ const TaskMiniItem = styled.div`
   }
 `;
 
+const TooltipBox = styled.div`
+  background: ${(props) => props.theme.surface};
+  border: 1px solid ${(props) => props.theme.border};
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  color: ${(props) => props.theme.text};
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  min-width: 120px;
+  z-index: 1000;
+
+  .label {
+    font-weight: 700;
+    font-size: 0.9rem;
+    margin-bottom: 6px;
+    color: ${(props) => props.theme.text};
+    border-bottom: 1px solid ${(props) => props.theme.border};
+    padding-bottom: 4px;
+  }
+
+  .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 0.82rem;
+    margin-top: 4px;
+  }
+
+  .row-name {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: ${(props) => props.theme.text};
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .value {
+    font-weight: 700;
+    color: ${(props) => props.theme.text};
+  }
+`;
+
+const PieLegend = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 0 8px;
+`;
+
+const PieLegendItem = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  background: ${(props) => props.theme.surface2};
+  border-radius: 8px;
+  font-size: 0.85rem;
+
+  .left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: ${(props) => props.theme.text};
+    font-weight: 600;
+  }
+
+  .dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    background: ${(props) => props.color};
+    flex-shrink: 0;
+  }
+
+  .right {
+    color: ${(props) => props.theme.textSecondary};
+    font-size: 0.82rem;
+  }
+
+  .value {
+    color: ${(props) => props.theme.text};
+    font-weight: 700;
+    margin-right: 4px;
+  }
+`;
+
 const DayCard = styled.div`
   background: ${(props) => props.theme.surface};
   padding: 18px;
@@ -281,6 +376,7 @@ const DayItem = styled.div`
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    color: ${(props) => props.theme.text};
   }
 
   .status {
@@ -303,43 +399,78 @@ const DayItem = styled.div`
   }
 `;
 
-const AxisHint = styled.div`
-  font-size: 0.7rem;
-  color: ${(props) => props.theme.textSecondary};
-  text-align: center;
-  margin-top: 4px;
-  font-style: italic;
-`;
+// ============================================
+// CUSTOM TOOLTIPS
+// ============================================
+const AreaChartTooltip = ({ active, payload }) => {
+  if (!active || !payload || !payload.length) return null;
 
-const COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444'];
+  const dayLabel = payload[0]?.payload?.day;
+  const dateLabel = payload[0]?.payload?.date;
+
+  return (
+    <TooltipBox>
+      <div className="label">
+        {dayLabel} · {dateLabel}
+      </div>
+      {payload.map((p, i) => (
+        <div key={i} className="row">
+          <span className="row-name">
+            <span className="dot" style={{ background: p.color }} />
+            {p.name}
+          </span>
+          <span className="value">{p.value}</span>
+        </div>
+      ))}
+    </TooltipBox>
+  );
+};
+
+const PieChartTooltip = ({ active, payload, total }) => {
+  if (!active || !payload || !payload.length) return null;
+
+  const item = payload[0];
+  const value = item.value;
+  const percent = total > 0 ? ((value / total) * 100).toFixed(0) : 0;
+
+  return (
+    <TooltipBox>
+      <div className="label">{item.name}</div>
+      <div className="row">
+        <span className="row-name">
+          <span className="dot" style={{ background: item.payload?.color }} />
+          Tasks
+        </span>
+        <span className="value">{value}</span>
+      </div>
+      <div className="row">
+        <span className="row-name">Percentage</span>
+        <span className="value">{percent}%</span>
+      </div>
+    </TooltipBox>
+  );
+};
 
 const WeeklyReview = () => {
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [reviewData, setReviewData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Detect theme to color chart axes properly
-  const [theme, setTheme] = useState('dark');
-  useEffect(() => {
+
+const [isDark, setIsDark] = useState(true);
+
+useEffect(() => {
+  const update = () => {
     const saved = localStorage.getItem('discipline-theme') || 'light';
-    setTheme(saved);
+    setIsDark(saved === 'dark');
+  };
+  update();
+  const interval = setInterval(update, 300);
+  return () => clearInterval(interval);
+}, []);
 
-    // Watch for theme changes
-    const observer = new MutationObserver(() => {
-      const current = localStorage.getItem('discipline-theme') || 'light';
-      setTheme(current);
-    });
-    observer.observe(document.body, { attributes: true });
-
-    return () => observer.disconnect();
-  }, []);
-
-  const isDark = theme === 'dark';
-  const axisColor = isDark ? '#9ca3af' : '#4b5563';
-  const gridColor = isDark ? '#2a3a5a' : '#e5e7eb';
-  const tooltipBg = isDark ? '#141b2b' : '#ffffff';
-  const tooltipBorder = isDark ? '#2a3a5a' : '#e5e7eb';
-  const tooltipText = isDark ? '#e5e7eb' : '#1a1a2e';
+const axisColor = isDark ? '#e5e7eb' : '#374151';
+const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
 
   useEffect(() => {
     fetchWeeklyReview();
@@ -376,7 +507,6 @@ const WeeklyReview = () => {
 
   const { summary, dailyData } = reviewData;
 
-  // Reorder dailyData: Saturday first
   const orderedDays = [...dailyData].sort((a, b) => {
     const da = new Date(a.date).getDay();
     const db = new Date(b.date).getDay();
@@ -385,74 +515,20 @@ const WeeklyReview = () => {
   });
 
   const dailyChartData = orderedDays.map((day) => ({
-    date: format(new Date(day.date), 'EEE'),
+    day: format(new Date(day.date), 'EEE'),
+    date: format(new Date(day.date), 'MMM d'),
     completed:
       day.topics.completed + day.sessions.completed + day.tasks.completed,
     total: day.topics.total + day.sessions.total + day.tasks.total,
   }));
 
   const pieData = [
-    { name: 'Completed', value: summary.overall.completed || 0 },
-    { name: 'Pending', value: summary.overall.pending || 0 },
-    { name: 'Missed', value: summary.overall.missed || 0 },
-  ];
+    { name: 'Completed', value: summary.overall.completed || 0, color: '#4f46e5' },
+    { name: 'Pending', value: summary.overall.pending || 0, color: '#f59e0b' },
+    { name: 'Missed', value: summary.overall.missed || 0, color: '#ef4444' },
+  ].filter((d) => d.value > 0);
 
-  // Custom tooltip for pie chart — shows name + value + percent
-  const CustomPieTooltip = ({ active, payload }) => {
-    if (!active || !payload || !payload.length) return null;
-    const data = payload[0];
-    const total = pieData.reduce((s, p) => s + p.value, 0);
-    const percent = total > 0 ? ((data.value / total) * 100).toFixed(0) : 0;
-
-    return (
-      <div
-        style={{
-          background: tooltipBg,
-          border: `1px solid ${tooltipBorder}`,
-          borderRadius: '8px',
-          padding: '8px 12px',
-          color: tooltipText,
-          fontSize: '0.85rem',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-        }}
-      >
-        <div style={{ fontWeight: 700, color: data.payload.fill }}>
-          {data.name}
-        </div>
-        <div>
-          Count: <strong>{data.value}</strong>
-        </div>
-        <div>Percentage: {percent}%</div>
-      </div>
-    );
-  };
-
-  // Custom tooltip for area chart
-  const CustomAreaTooltip = ({ active, payload, label }) => {
-    if (!active || !payload || !payload.length) return null;
-    return (
-      <div
-        style={{
-          background: tooltipBg,
-          border: `1px solid ${tooltipBorder}`,
-          borderRadius: '8px',
-          padding: '8px 12px',
-          color: tooltipText,
-          fontSize: '0.85rem',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-        }}
-      >
-        <div style={{ fontWeight: 700, marginBottom: '4px' }}>
-          {label}
-        </div>
-        {payload.map((p, i) => (
-          <div key={i} style={{ color: p.color }}>
-            {p.name}: <strong>{p.value}</strong>
-          </div>
-        ))}
-      </div>
-    );
-  };
+  const pieTotal = pieData.reduce((s, p) => s + p.value, 0);
 
   const taskBreakdown = [
     {
@@ -546,35 +622,27 @@ const WeeklyReview = () => {
           <h3>Daily Progress</h3>
           <ChartAndTasks>
             <div>
-              <ResponsiveContainer width="100%" height={250}>
+              <ResponsiveContainer width="100%" height={280}>
                 <AreaChart
                   data={dailyChartData}
-                  margin={{ top: 10, right: 10, left: 0, bottom: 20 }}
+                  margin={{ top: 20, right: 15, left: 15, bottom: 30 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
                   <XAxis
-                    dataKey="date"
-                    stroke={axisColor}
-                    tick={{ fill: axisColor, fontSize: 12 }}
-                    label={{
-                      value: 'Day of Week',
-                      position: 'insideBottom',
-                      offset: -10,
-                      fill: axisColor,
-                      fontSize: 12,
-                    }}
+                    dataKey="day"
+                    tick={{ fill: axisColor, fontSize: 13, fontWeight: 600 }}
+                    axisLine={{ stroke: axisColor }}
+                    tickLine={{ stroke: axisColor }}
                   />
                   <YAxis
-                    stroke={axisColor}
-                    tick={{ fill: axisColor, fontSize: 12 }}
-                    label={{
-                      value: 'Number of Items',
-                      angle: -90,
-                      position: 'insideLeft',
-                      style: { textAnchor: 'middle', fill: axisColor, fontSize: 12 },
-                    }}
+                    tick={{ fill: axisColor, fontSize: 12, fontWeight: 600 }}
+                    axisLine={{ stroke: axisColor }}
+                    tickLine={{ stroke: axisColor }}
                   />
-                  <Tooltip content={<CustomAreaTooltip />} />
+                  <Tooltip
+                    content={<AreaChartTooltip />}
+                    cursor={{ fill: 'transparent' }}
+                  />
                   <Area
                     type="monotone"
                     dataKey="completed"
@@ -595,9 +663,26 @@ const WeeklyReview = () => {
                   />
                 </AreaChart>
               </ResponsiveContainer>
-              <AxisHint>
-                Vertical axis: number of items • Horizontal axis: day of week
-              </AxisHint>
+
+              {/* Axis captions OUTSIDE the SVG — guaranteed to render */}
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  marginTop: '8px',
+                  fontSize: '0.75rem',
+                  color: axisColor,
+                  paddingLeft: '15px',
+                  paddingRight: '15px',
+                }}
+              >
+                <span>
+                  <strong>Vertical:</strong> Number of tasks
+                </span>
+                <span>
+                  <strong>Horizontal:</strong> Day of week
+                </span>
+              </div>
             </div>
 
             <TaskMiniList>
@@ -615,45 +700,67 @@ const WeeklyReview = () => {
         </ChartCard>
 
         <ChartCard>
-          <h3>Distribution</h3>
-          <ResponsiveContainer width="100%" height={280}>
-            <PieChart>
-              <Pie
-                data={pieData}
-                cx="50%"
-                cy="50%"
-                innerRadius={55}
-                outerRadius={85}
-                paddingAngle={4}
-                dataKey="value"
-                nameKey="name"
-                label={({ name, value, percent }) =>
-                  value > 0
-                    ? `${name}: ${value} (${(percent * 100).toFixed(0)}%)`
-                    : ''
-                }
-                labelLine={false}
-              >
-                {pieData.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={COLORS[index % COLORS.length]}
-                  />
-                ))}
-              </Pie>
-              <Tooltip content={<CustomPieTooltip />} />
-              <Legend
-                verticalAlign="bottom"
-                height={36}
-                iconType="circle"
-                formatter={(value) => (
-                  <span style={{ color: axisColor, fontSize: '0.85rem' }}>
-                    {value}
-                  </span>
-                )}
-              />
-            </PieChart>
-          </ResponsiveContainer>
+          <h3>Overall Distribution</h3>
+
+          {pieData.length === 0 ? (
+            <div
+              style={{
+                textAlign: 'center',
+                padding: '60px 20px',
+                opacity: 0.6,
+                color: axisColor,
+              }}
+            >
+              No data this week
+            </div>
+          ) : (
+            <>
+              <ResponsiveContainer width="100%" height={240}>
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={55}
+                    outerRadius={90}
+                    paddingAngle={4}
+                    dataKey="value"
+                    nameKey="name"
+                  >
+                    {pieData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={entry.color}
+                        stroke="transparent"
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<PieChartTooltip total={pieTotal} />} />
+                </PieChart>
+              </ResponsiveContainer>
+
+              <PieLegend>
+                {pieData.map((item, i) => {
+                  const percent =
+                    pieTotal > 0
+                      ? ((item.value / pieTotal) * 100).toFixed(0)
+                      : 0;
+                  return (
+                    <PieLegendItem key={i} color={item.color}>
+                      <span className="left">
+                        <span className="dot" />
+                        {item.name}
+                      </span>
+                      <span className="right">
+                        <span className="value">{item.value}</span>
+                        ({percent}%)
+                      </span>
+                    </PieLegendItem>
+                  );
+                })}
+              </PieLegend>
+            </>
+          )}
         </ChartCard>
       </ChartsContainer>
 
