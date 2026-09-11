@@ -11,6 +11,7 @@ import {
   FiLinkedin,
   FiMail,
 } from 'react-icons/fi';
+import { FaWhatsapp } from 'react-icons/fa';
 
 const Wrapper = styled.div`
   overflow-x: hidden;
@@ -429,6 +430,30 @@ const TeamSocials = styled.div`
       transform: translateY(-3px);
       border-color: ${(props) => props.theme.primary};
     }
+
+    &.whatsapp:hover {
+      background: #25d366;
+      border-color: #25d366;
+      box-shadow: 0 8px 16px rgba(37, 211, 102, 0.35);
+    }
+
+    &.email:hover {
+      background: #ea4335;
+      border-color: #ea4335;
+      box-shadow: 0 8px 16px rgba(234, 67, 53, 0.35);
+    }
+
+    &.github:hover {
+      background: #333;
+      border-color: #333;
+      box-shadow: 0 8px 16px rgba(51, 51, 51, 0.35);
+    }
+
+    &.linkedin:hover {
+      background: #0077b5;
+      border-color: #0077b5;
+      box-shadow: 0 8px 16px rgba(0, 119, 181, 0.35);
+    }
   }
 `;
 
@@ -506,6 +531,24 @@ const CTAButton = styled(Link)`
   }
 `;
 
+// ============================================
+// Helper: format phone for WhatsApp URL
+// Removes non-digits and ensures international format
+// ============================================
+const formatWhatsApp = (number) => {
+  if (!number) return '';
+  // Strip everything except digits
+  let cleaned = number.replace(/\D/g, '');
+
+  // If it starts with 0 (Afghanistan local format), replace with 93
+  // Example: 0796628844 → 93796628844
+  if (cleaned.startsWith('0')) {
+    cleaned = '93' + cleaned.slice(1);
+  }
+
+  return cleaned;
+};
+
 const About = () => {
   // ============================================
   // EDIT THIS TO ADD YOUR TEAM MEMBERS
@@ -514,22 +557,23 @@ const About = () => {
     {
       name: 'Fiazullah Shirzai',
       role: 'Founder & Developer',
-      photo: '/team/fiazullah.jpg',
+      photo: '/team1.jpeg',
       bio: 'Full-stack developer passionate about building tools that help people grow. Creator of Discipline.',
       email: 'fiazullahshirzai2003@gmail.com',
       github: 'https://github.com',
       linkedin: 'https://linkedin.com',
+      whatsapp: '0796628844',
     },
-    // Add more members like this:
-    // {
-    //   name: 'Team Member Name',
-    //   role: 'Designer',
-    //   photo: '/team/member2.jpg',
-    //   bio: 'Short bio about them.',
-    //   email: 'their@email.com',
-    //   github: 'https://github.com/username',
-    //   linkedin: 'https://linkedin.com/in/username',
-    // },
+    {
+      name: 'Irfan Lalzai',
+      role: 'Designer & Developer',
+      photo: '/team2.jpeg',
+      bio: 'Full-stack developer passionate about building tools that help people grow. Creator of Discipline.',
+      email: 'irfanlalzai@gmail.com',
+      github: 'https://github.com/username',
+      linkedin: 'https://linkedin.com/in/username',
+      whatsapp: '0782783388',
+    },
   ];
 
   const values = [
@@ -654,7 +698,6 @@ const About = () => {
                       src={member.photo}
                       alt={member.name}
                       onError={(e) => {
-                        // Fallback to initials if image fails to load
                         e.target.style.display = 'none';
                         e.target.parentElement.innerHTML = `<div class="fallback">${getInitials(
                           member.name
@@ -672,10 +715,23 @@ const About = () => {
                   {member.email && (
                     <a
                       href={`mailto:${member.email}`}
-                      title="Email"
+                      title="Send Email"
                       aria-label="Email"
+                      className="email"
                     >
                       <FiMail />
+                    </a>
+                  )}
+                  {member.whatsapp && (
+                    <a
+                      href={`https://wa.me/${formatWhatsApp(member.whatsapp)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={`Chat on WhatsApp (${member.whatsapp})`}
+                      aria-label="WhatsApp"
+                      className="whatsapp"
+                    >
+                      <FaWhatsapp />
                     </a>
                   )}
                   {member.github && (
@@ -685,6 +741,7 @@ const About = () => {
                       rel="noopener noreferrer"
                       title="GitHub"
                       aria-label="GitHub"
+                      className="github"
                     >
                       <FiGithub />
                     </a>
@@ -696,6 +753,7 @@ const About = () => {
                       rel="noopener noreferrer"
                       title="LinkedIn"
                       aria-label="LinkedIn"
+                      className="linkedin"
                     >
                       <FiLinkedin />
                     </a>
