@@ -345,7 +345,7 @@ const Navbar = () => {
   };
 
   const navItems = [
-    { to: '/home', label: 'Dashboard', icon: <FiHome /> },
+    { to: '/home', label: 'Home', icon: <FiHome /> },
     { to: '/areas', label: 'Areas', icon: <FiGrid /> },
     { to: '/courses', label: 'Courses', icon: <FiBookOpen /> },
     { to: '/books', label: 'Books', icon: <FiBook /> },
