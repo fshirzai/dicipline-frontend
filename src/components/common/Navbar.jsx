@@ -41,6 +41,13 @@ const Logo = styled(Link)`
   align-items: center;
   gap: 10px;
 
+  img {
+    height: 36px;
+    width: 36px;
+    object-fit: contain;
+    border-radius: 8px;
+  }
+
   span {
     color: ${(props) => props.theme.navbarText};
   }
@@ -132,7 +139,7 @@ const Navbar = () => {
   return (
     <Nav>
       <Logo to="/dashboard">
-        <FiBook />
+        <img src="/favicon.svg" alt="Discipline Logo" />
         <span>Discipline</span>
       </Logo>
 

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import styled from 'styled-components';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
-import { FiArrowLeft, FiCheckCircle, FiClock, FiXCircle, FiTrash2, FiCalendar } from 'react-icons/fi';
+import { FiArrowLeft, FiCheckCircle, FiClock, FiXCircle, FiTrash2, FiCalendar, FiEdit, FiPlus } from 'react-icons/fi';
 import { format } from 'date-fns';
 
 const Container = styled.div`
@@ -17,10 +17,11 @@ const Header = styled.div`
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 15px;
 
   @media (max-width: 768px) {
     flex-direction: column;
-    gap: 15px;
   }
 `;
 
@@ -51,6 +52,32 @@ const BackButton = styled.button`
 
   &:hover {
     background: ${props => props.theme.surface2};
+  }
+`;
+
+const HeaderActions = styled.div`
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+`;
+
+const EditButton = styled(Link)`
+  padding: 8px 16px;
+  background: ${props => props.theme.primary};
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s;
+
+  &:hover {
+    background: ${props => props.theme.primaryDark};
+    transform: translateY(-2px);
   }
 `;
 
@@ -101,6 +128,36 @@ const ProgressInfo = styled.div`
   justify-content: space-between;
   color: ${props => props.theme.textSecondary};
   font-size: 0.9rem;
+`;
+
+const SectionHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+
+  h3 {
+    font-size: 1.2rem;
+  }
+`;
+
+const AddButton = styled(Link)`
+  padding: 8px 16px;
+  background: ${props => props.theme.primary};
+  color: white;
+  border-radius: 6px;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+
+  &:hover {
+    background: ${props => props.theme.primaryDark};
+    transform: translateY(-2px);
+  }
 `;
 
 const TasksList = styled.div`
@@ -205,6 +262,10 @@ const EmptyState = styled.div`
   text-align: center;
   padding: 40px;
   color: ${props => props.theme.textSecondary};
+
+  p {
+    margin-bottom: 16px;
+  }
 `;
 
 const GoalDetail = () => {
@@ -232,13 +293,25 @@ const GoalDetail = () => {
 
   const updateTaskStatus = async (taskId, currentStatus) => {
     const newStatus = currentStatus === 'complete' ? 'pending' : 'complete';
-    
+
     try {
       await api.put(`/goals/tasks/${taskId}`, { status: newStatus });
       toast.success(`Task marked as ${newStatus}`);
       fetchGoal();
     } catch (error) {
       toast.error('Failed to update status');
+    }
+  };
+
+  const deleteTask = async (taskId, name) => {
+    if (!window.confirm(`Delete task "${name}"?`)) return;
+
+    try {
+      await api.delete(`/goals/tasks/${taskId}`);
+      toast.success('Task deleted');
+      fetchGoal();
+    } catch (error) {
+      toast.error('Failed to delete task');
     }
   };
 
@@ -284,9 +357,14 @@ const GoalDetail = () => {
             </div>
           </div>
         </HeaderLeft>
-        <DeleteButton onClick={deleteGoal}>
-          <FiTrash2 /> Delete
-        </DeleteButton>
+        <HeaderActions>
+          <EditButton to={`/goals/${id}/edit`}>
+            <FiEdit /> Edit Goal
+          </EditButton>
+          <DeleteButton onClick={deleteGoal}>
+            <FiTrash2 /> Delete
+          </DeleteButton>
+        </HeaderActions>
       </Header>
 
       <ProgressSection>
@@ -299,9 +377,20 @@ const GoalDetail = () => {
         </ProgressBar>
       </ProgressSection>
 
-      <h3 style={{ marginBottom: '16px' }}>Tasks</h3>
+      <SectionHeader>
+        <h3>Tasks ({totalTasks})</h3>
+        <AddButton to={`/goals/${id}/tasks/create`}>
+          <FiPlus /> Add Task
+        </AddButton>
+      </SectionHeader>
+
       {totalTasks === 0 ? (
-        <EmptyState>No tasks in this goal yet.</EmptyState>
+        <EmptyState>
+          <p>No tasks in this goal yet.</p>
+          <AddButton to={`/goals/${id}/tasks/create`} style={{ display: 'inline-flex' }}>
+            <FiPlus /> Add First Task
+          </AddButton>
+        </EmptyState>
       ) : (
         <TasksList>
           {goal.tasks.map((task) => (
@@ -317,7 +406,7 @@ const GoalDetail = () => {
               </div>
               <div className="right">
                 <StatusBadge status={task.status}>
-                  {task.status === 'complete' ? <FiCheckCircle /> : 
+                  {task.status === 'complete' ? <FiCheckCircle /> :
                    task.status === 'missed' ? <FiXCircle /> : <FiClock />}
                   {' '}{task.status}
                 </StatusBadge>
@@ -328,6 +417,23 @@ const GoalDetail = () => {
                 >
                   {task.status === 'complete' ? 'Undo' : 'Complete'}
                 </StatusButton>
+                <button
+                  onClick={() => deleteTask(task._id, task.name)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#ef4444',
+                    cursor: 'pointer',
+                    padding: '6px',
+                    borderRadius: '6px',
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={(e) => (e.target.style.background = '#ef444422')}
+                  onMouseLeave={(e) => (e.target.style.background = 'transparent')}
+                  title="Delete task"
+                >
+                  <FiTrash2 />
+                </button>
               </div>
             </TaskItem>
           ))}

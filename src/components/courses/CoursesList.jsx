@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
-import { FiPlus, FiBookOpen, FiArrowLeft, FiTrash2, FiCheckCircle, FiClock, FiXCircle } from 'react-icons/fi';
+import { FiPlus, FiBookOpen, FiArrowLeft, FiTrash2 } from 'react-icons/fi';
 import { format } from 'date-fns';
 
 const Container = styled.div`
@@ -213,24 +213,35 @@ const FilterButton = styled.button`
   }
 `;
 
+const LoadingSpinner = styled.div`
+  text-align: center;
+  padding: 60px;
+  color: ${props => props.theme.textSecondary};
+`;
+
 const CoursesList = () => {
   const navigate = useNavigate();
   const [areas, setAreas] = useState([]);
   const [selectedArea, setSelectedArea] = useState('all');
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [areasLoaded, setAreasLoaded] = useState(false);
 
+  // Step 1: Load areas on mount
   useEffect(() => {
     fetchAreas();
   }, []);
 
+  // Step 2: Load courses whenever areas finish loading OR selectedArea changes
   useEffect(() => {
+    if (!areasLoaded) return; // Wait for areas to load first
+
     if (selectedArea === 'all') {
       fetchAllCourses();
-    } else if (selectedArea) {
+    } else {
       fetchCoursesByArea(selectedArea);
     }
-  }, [selectedArea]);
+  }, [selectedArea, areasLoaded]);
 
   const fetchAreas = async () => {
     try {
@@ -239,21 +250,29 @@ const CoursesList = () => {
     } catch (error) {
       console.error('Error fetching areas:', error);
       toast.error('Failed to load areas');
+      setAreas([]);
+    } finally {
+      setAreasLoaded(true); // Signal that areas are done loading
     }
   };
 
   const fetchAllCourses = async () => {
     try {
       setLoading(true);
-      const promises = areas.map(area => 
-        api.get(`/courses/area/${area._id}`)
-      );
+
+      if (areas.length === 0) {
+        setCourses([]);
+        return;
+      }
+
+      const promises = areas.map(area => api.get(`/courses/area/${area._id}`));
       const responses = await Promise.all(promises);
       const allCourses = responses.flatMap(res => res.data.courses);
       setCourses(allCourses);
     } catch (error) {
       console.error('Error fetching courses:', error);
       toast.error('Failed to load courses');
+      setCourses([]);
     } finally {
       setLoading(false);
     }
@@ -267,6 +286,7 @@ const CoursesList = () => {
     } catch (error) {
       console.error('Error fetching courses:', error);
       toast.error('Failed to load courses');
+      setCourses([]);
     } finally {
       setLoading(false);
     }
@@ -298,8 +318,13 @@ const CoursesList = () => {
     return { total, completed, missed, pending };
   };
 
-  if (loading) {
-    return <div>Loading...</div>;
+  // Show loading only while areas are loading initially
+  if (!areasLoaded) {
+    return (
+      <Container>
+        <LoadingSpinner>Loading areas...</LoadingSpinner>
+      </Container>
+    );
   }
 
   return (
@@ -338,17 +363,24 @@ const CoursesList = () => {
         ))}
       </FilterBar>
 
-      {courses.length === 0 ? (
+      {loading ? (
+        <LoadingSpinner>Loading courses...</LoadingSpinner>
+      ) : courses.length === 0 ? (
         <EmptyState>
           <FiBookOpen />
           <h3>No courses found</h3>
           <p>
-            {selectedArea === 'all' 
-              ? 'Create a course in one of your areas to get started'
+            {selectedArea === 'all'
+              ? areas.length === 0
+                ? 'Create an area first to start adding courses'
+                : 'No courses yet. Create a course in one of your areas to get started'
               : 'Create your first course in this area'}
           </p>
           {selectedArea !== 'all' && (
-            <CreateButton to={`/courses/create/${selectedArea}`} style={{ marginTop: '16px', display: 'inline-flex' }}>
+            <CreateButton
+              to={`/courses/create/${selectedArea}`}
+              style={{ marginTop: '16px', display: 'inline-flex' }}
+            >
               <FiPlus /> Create Course
             </CreateButton>
           )}
@@ -366,7 +398,7 @@ const CoursesList = () => {
                   {course.title}
                 </CardTitle>
                 <CardDescription>{course.description}</CardDescription>
-                
+
                 <div style={{ fontSize: '0.85rem', color: '#9ca3af', marginBottom: '8px' }}>
                   📅 {format(new Date(course.startTime), 'MMM d')} - {format(new Date(course.endTime), 'MMM d, yyyy')}
                   {area && ` • ${area.title}`}
@@ -407,8 +439,8 @@ const CoursesList = () => {
                       borderRadius: '4px',
                       transition: 'all 0.2s',
                     }}
-                    onMouseEnter={(e) => e.target.style.background = '#ef444422'}
-                    onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                    onMouseEnter={(e) => (e.target.style.background = '#ef444422')}
+                    onMouseLeave={(e) => (e.target.style.background = 'transparent')}
                   >
                     <FiTrash2 />
                   </button>

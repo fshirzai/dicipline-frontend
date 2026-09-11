@@ -197,24 +197,33 @@ const EmptyState = styled.div`
   }
 `;
 
+const LoadingSpinner = styled.div`
+  text-align: center;
+  padding: 60px;
+  color: ${props => props.theme.textSecondary};
+`;
+
 const GoalsList = () => {
   const navigate = useNavigate();
   const [areas, setAreas] = useState([]);
   const [selectedArea, setSelectedArea] = useState('all');
   const [goals, setGoals] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [areasLoaded, setAreasLoaded] = useState(false);
 
   useEffect(() => {
     fetchAreas();
   }, []);
 
   useEffect(() => {
+    if (!areasLoaded) return;
+
     if (selectedArea === 'all') {
       fetchAllGoals();
-    } else if (selectedArea) {
+    } else {
       fetchGoalsByArea(selectedArea);
     }
-  }, [selectedArea]);
+  }, [selectedArea, areasLoaded]);
 
   const fetchAreas = async () => {
     try {
@@ -223,21 +232,29 @@ const GoalsList = () => {
     } catch (error) {
       console.error('Error fetching areas:', error);
       toast.error('Failed to load areas');
+      setAreas([]);
+    } finally {
+      setAreasLoaded(true);
     }
   };
 
   const fetchAllGoals = async () => {
     try {
       setLoading(true);
-      const promises = areas.map(area => 
-        api.get(`/goals/area/${area._id}`)
-      );
+
+      if (areas.length === 0) {
+        setGoals([]);
+        return;
+      }
+
+      const promises = areas.map(area => api.get(`/goals/area/${area._id}`));
       const responses = await Promise.all(promises);
       const allGoals = responses.flatMap(res => res.data.goals);
       setGoals(allGoals);
     } catch (error) {
       console.error('Error fetching goals:', error);
       toast.error('Failed to load goals');
+      setGoals([]);
     } finally {
       setLoading(false);
     }
@@ -251,6 +268,7 @@ const GoalsList = () => {
     } catch (error) {
       console.error('Error fetching goals:', error);
       toast.error('Failed to load goals');
+      setGoals([]);
     } finally {
       setLoading(false);
     }
@@ -282,8 +300,12 @@ const GoalsList = () => {
     return { total, completed, missed, pending };
   };
 
-  if (loading) {
-    return <div>Loading...</div>;
+  if (!areasLoaded) {
+    return (
+      <Container>
+        <LoadingSpinner>Loading areas...</LoadingSpinner>
+      </Container>
+    );
   }
 
   return (
@@ -322,17 +344,24 @@ const GoalsList = () => {
         ))}
       </FilterBar>
 
-      {goals.length === 0 ? (
+      {loading ? (
+        <LoadingSpinner>Loading goals...</LoadingSpinner>
+      ) : goals.length === 0 ? (
         <EmptyState>
           <FiTarget />
           <h3>No goals found</h3>
           <p>
-            {selectedArea === 'all' 
-              ? 'Create a goal in one of your areas to get started'
+            {selectedArea === 'all'
+              ? areas.length === 0
+                ? 'Create an area first to start adding goals'
+                : 'No goals yet. Create a goal in one of your areas to get started'
               : 'Create your first goal in this area'}
           </p>
           {selectedArea !== 'all' && (
-            <CreateButton to={`/goals/create/${selectedArea}`} style={{ marginTop: '16px', display: 'inline-flex' }}>
+            <CreateButton
+              to={`/goals/create/${selectedArea}`}
+              style={{ marginTop: '16px', display: 'inline-flex' }}
+            >
               <FiPlus /> Create Goal
             </CreateButton>
           )}
@@ -350,7 +379,7 @@ const GoalsList = () => {
                   {goal.title}
                 </CardTitle>
                 <CardDescription>{goal.description}</CardDescription>
-                
+
                 <div style={{ fontSize: '0.85rem', color: '#9ca3af', marginBottom: '8px' }}>
                   <FiCalendar size={14} style={{ display: 'inline', marginRight: '4px' }} />
                   {format(new Date(goal.startDate), 'MMM d')} - {format(new Date(goal.endDate), 'MMM d, yyyy')}
@@ -386,8 +415,8 @@ const GoalsList = () => {
                       borderRadius: '4px',
                       transition: 'all 0.2s',
                     }}
-                    onMouseEnter={(e) => e.target.style.background = '#ef444422'}
-                    onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                    onMouseEnter={(e) => (e.target.style.background = '#ef444422')}
+                    onMouseLeave={(e) => (e.target.style.background = 'transparent')}
                   >
                     <FiTrash2 />
                   </button>

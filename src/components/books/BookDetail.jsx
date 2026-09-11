@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import styled from 'styled-components';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
-import { FiArrowLeft, FiCheckCircle, FiClock, FiXCircle, FiTrash2, FiUser, FiCalendar } from 'react-icons/fi';
+import { FiArrowLeft, FiCheckCircle, FiClock, FiXCircle, FiTrash2, FiUser, FiCalendar, FiEdit, FiPlus } from 'react-icons/fi';
 import { format } from 'date-fns';
 
 const Container = styled.div`
@@ -17,10 +17,11 @@ const Header = styled.div`
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 15px;
 
   @media (max-width: 768px) {
     flex-direction: column;
-    gap: 15px;
   }
 `;
 
@@ -59,6 +60,30 @@ const BackButton = styled.button`
 
   &:hover {
     background: ${props => props.theme.surface2};
+  }
+`;
+
+const HeaderActions = styled.div`
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+`;
+
+const EditButton = styled(Link)`
+  padding: 8px 16px;
+  background: ${props => props.theme.primary};
+  color: white;
+  border-radius: 6px;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  transition: all 0.2s;
+
+  &:hover {
+    background: ${props => props.theme.primaryDark};
+    transform: translateY(-2px);
   }
 `;
 
@@ -109,6 +134,36 @@ const ProgressInfo = styled.div`
   justify-content: space-between;
   color: ${props => props.theme.textSecondary};
   font-size: 0.9rem;
+`;
+
+const SectionHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+
+  h3 {
+    font-size: 1.2rem;
+  }
+`;
+
+const AddButton = styled(Link)`
+  padding: 8px 16px;
+  background: ${props => props.theme.primary};
+  color: white;
+  border-radius: 6px;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+
+  &:hover {
+    background: ${props => props.theme.primaryDark};
+    transform: translateY(-2px);
+  }
 `;
 
 const SessionsList = styled.div`
@@ -207,6 +262,10 @@ const EmptyState = styled.div`
   text-align: center;
   padding: 40px;
   color: ${props => props.theme.textSecondary};
+
+  p {
+    margin-bottom: 16px;
+  }
 `;
 
 const BookDetail = () => {
@@ -234,13 +293,25 @@ const BookDetail = () => {
 
   const updateSessionStatus = async (sessionId, currentStatus) => {
     const newStatus = currentStatus === 'complete' ? 'pending' : 'complete';
-    
+
     try {
       await api.put(`/books/reading-sessions/${sessionId}`, { status: newStatus });
       toast.success(`Session marked as ${newStatus}`);
       fetchBook();
     } catch (error) {
       toast.error('Failed to update status');
+    }
+  };
+
+  const deleteSession = async (sessionId, pageStart, pageEnd) => {
+    if (!window.confirm(`Delete reading session "Pages ${pageStart}-${pageEnd}"?`)) return;
+
+    try {
+      await api.delete(`/books/reading-sessions/${sessionId}`);
+      toast.success('Reading session deleted');
+      fetchBook();
+    } catch (error) {
+      toast.error('Failed to delete session');
     }
   };
 
@@ -283,15 +354,20 @@ const BookDetail = () => {
               <FiUser size={14} /> {book.author}
             </div>
             <div className="subtitle" style={{ marginTop: '4px' }}>
-              📄 {book.pages} pages • 
+              📄 {book.pages} pages •
               <FiCalendar size={14} style={{ display: 'inline', marginLeft: '8px', marginRight: '4px' }} />
               {format(new Date(book.startDate), 'MMM d, yyyy')} - {format(new Date(book.endDate), 'MMM d, yyyy')}
             </div>
           </div>
         </HeaderLeft>
-        <DeleteButton onClick={deleteBook}>
-          <FiTrash2 /> Delete
-        </DeleteButton>
+        <HeaderActions>
+          <EditButton to={`/books/${id}/edit`}>
+            <FiEdit /> Edit Book
+          </EditButton>
+          <DeleteButton onClick={deleteBook}>
+            <FiTrash2 /> Delete
+          </DeleteButton>
+        </HeaderActions>
       </Header>
 
       <ProgressSection>
@@ -304,9 +380,20 @@ const BookDetail = () => {
         </ProgressBar>
       </ProgressSection>
 
-      <h3 style={{ marginBottom: '16px' }}>Reading Sessions</h3>
+      <SectionHeader>
+        <h3>Reading Sessions ({totalSessions})</h3>
+        <AddButton to={`/books/${id}/sessions/create`}>
+          <FiPlus /> Add Session
+        </AddButton>
+      </SectionHeader>
+
       {totalSessions === 0 ? (
-        <EmptyState>No reading sessions for this book yet.</EmptyState>
+        <EmptyState>
+          <p>No reading sessions for this book yet.</p>
+          <AddButton to={`/books/${id}/sessions/create`} style={{ display: 'inline-flex' }}>
+            <FiPlus /> Add First Session
+          </AddButton>
+        </EmptyState>
       ) : (
         <SessionsList>
           {book.readingSessions.map((session) => (
@@ -321,7 +408,7 @@ const BookDetail = () => {
               </div>
               <div className="right">
                 <StatusBadge status={session.status}>
-                  {session.status === 'complete' ? <FiCheckCircle /> : 
+                  {session.status === 'complete' ? <FiCheckCircle /> :
                    session.status === 'missed' ? <FiXCircle /> : <FiClock />}
                   {' '}{session.status}
                 </StatusBadge>
@@ -332,6 +419,23 @@ const BookDetail = () => {
                 >
                   {session.status === 'complete' ? 'Undo' : 'Complete'}
                 </StatusButton>
+                <button
+                  onClick={() => deleteSession(session._id, session.pageStart, session.pageEnd)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#ef4444',
+                    cursor: 'pointer',
+                    padding: '6px',
+                    borderRadius: '6px',
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={(e) => (e.target.style.background = '#ef444422')}
+                  onMouseLeave={(e) => (e.target.style.background = 'transparent')}
+                  title="Delete session"
+                >
+                  <FiTrash2 />
+                </button>
               </div>
             </SessionItem>
           ))}

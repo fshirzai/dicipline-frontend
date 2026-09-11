@@ -199,24 +199,35 @@ const EmptyState = styled.div`
   }
 `;
 
+const LoadingSpinner = styled.div`
+  text-align: center;
+  padding: 60px;
+  color: ${props => props.theme.textSecondary};
+`;
+
 const BooksList = () => {
   const navigate = useNavigate();
   const [areas, setAreas] = useState([]);
   const [selectedArea, setSelectedArea] = useState('all');
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [areasLoaded, setAreasLoaded] = useState(false);
 
+  // Step 1: Load areas on mount
   useEffect(() => {
     fetchAreas();
   }, []);
 
+  // Step 2: Load books whenever areas finish loading OR selectedArea changes
   useEffect(() => {
+    if (!areasLoaded) return; // Wait for areas to load first
+
     if (selectedArea === 'all') {
       fetchAllBooks();
-    } else if (selectedArea) {
+    } else {
       fetchBooksByArea(selectedArea);
     }
-  }, [selectedArea]);
+  }, [selectedArea, areasLoaded]);
 
   const fetchAreas = async () => {
     try {
@@ -225,21 +236,29 @@ const BooksList = () => {
     } catch (error) {
       console.error('Error fetching areas:', error);
       toast.error('Failed to load areas');
+      setAreas([]);
+    } finally {
+      setAreasLoaded(true); // Signal that areas are done loading
     }
   };
 
   const fetchAllBooks = async () => {
     try {
       setLoading(true);
-      const promises = areas.map(area => 
-        api.get(`/books/area/${area._id}`)
-      );
+
+      if (areas.length === 0) {
+        setBooks([]);
+        return;
+      }
+
+      const promises = areas.map(area => api.get(`/books/area/${area._id}`));
       const responses = await Promise.all(promises);
       const allBooks = responses.flatMap(res => res.data.books);
       setBooks(allBooks);
     } catch (error) {
       console.error('Error fetching books:', error);
       toast.error('Failed to load books');
+      setBooks([]);
     } finally {
       setLoading(false);
     }
@@ -253,6 +272,7 @@ const BooksList = () => {
     } catch (error) {
       console.error('Error fetching books:', error);
       toast.error('Failed to load books');
+      setBooks([]);
     } finally {
       setLoading(false);
     }
@@ -284,8 +304,13 @@ const BooksList = () => {
     return { total, completed, missed, pending };
   };
 
-  if (loading) {
-    return <div>Loading...</div>;
+  // Show loading only while areas are loading initially
+  if (!areasLoaded) {
+    return (
+      <Container>
+        <LoadingSpinner>Loading areas...</LoadingSpinner>
+      </Container>
+    );
   }
 
   return (
@@ -324,17 +349,24 @@ const BooksList = () => {
         ))}
       </FilterBar>
 
-      {books.length === 0 ? (
+      {loading ? (
+        <LoadingSpinner>Loading books...</LoadingSpinner>
+      ) : books.length === 0 ? (
         <EmptyState>
           <FiBook />
           <h3>No books found</h3>
           <p>
-            {selectedArea === 'all' 
-              ? 'Add a book in one of your areas to get started'
+            {selectedArea === 'all'
+              ? areas.length === 0
+                ? 'Create an area first to start adding books'
+                : 'No books yet. Add a book in one of your areas to get started'
               : 'Add your first book in this area'}
           </p>
           {selectedArea !== 'all' && (
-            <CreateButton to={`/books/create/${selectedArea}`} style={{ marginTop: '16px', display: 'inline-flex' }}>
+            <CreateButton
+              to={`/books/create/${selectedArea}`}
+              style={{ marginTop: '16px', display: 'inline-flex' }}
+            >
               <FiPlus /> Add Book
             </CreateButton>
           )}
@@ -354,7 +386,7 @@ const BooksList = () => {
                 <Author>
                   <FiUser size={14} /> {book.author}
                 </Author>
-                
+
                 <div style={{ fontSize: '0.85rem', color: '#9ca3af', marginBottom: '8px' }}>
                   📄 {book.pages} pages
                   {area && ` • ${area.title}`}
@@ -394,8 +426,8 @@ const BooksList = () => {
                       borderRadius: '4px',
                       transition: 'all 0.2s',
                     }}
-                    onMouseEnter={(e) => e.target.style.background = '#ef444422'}
-                    onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                    onMouseEnter={(e) => (e.target.style.background = '#ef444422')}
+                    onMouseLeave={(e) => (e.target.style.background = 'transparent')}
                   >
                     <FiTrash2 />
                   </button>

@@ -37,8 +37,9 @@ import EditGoal from "./components/goals/EditGoal";
 import GoalDetail from "./components/goals/GoalDetail";
 import PrayerTracker from "./components/prayers/PrayerTracker";
 import AdminDashboard from "./components/admin/AdminDashboard";
-
-
+import CreateTopic from "./components/courses/CreateTopic";
+import CreateSession from "./components/books/CreateSession";
+import CreateTask from "./components/goals/CreateTask";
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -242,6 +243,14 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/courses/:id/topics/create"
+              element={
+                <ProtectedRoute>
+                  <CreateTopic />
+                </ProtectedRoute>
+              }
+            />
 
             <Route
               path="/books"
@@ -269,7 +278,14 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
+            <Route
+              path="/books/:id/sessions/create"
+              element={
+                <ProtectedRoute>
+                  <CreateSession />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/goals"
               element={
@@ -284,6 +300,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <CreateGoal />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/goals/:id/tasks/create"
+              element={
+                <ProtectedRoute>
+                  <CreateTask />
                 </ProtectedRoute>
               }
             />

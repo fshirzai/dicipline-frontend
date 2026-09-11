@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
-import { format, startOfWeek, addDays } from 'date-fns';
+import { format, addDays, startOfWeek } from 'date-fns';
 import { FiCheck, FiClock, FiX, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 
 const Container = styled.div`
@@ -206,8 +206,8 @@ const SpecialBadge = styled.span`
   border-radius: 12px;
   font-size: 0.6rem;
   font-weight: 600;
-  background: ${props => props.isFriday ? '#f59e0b33' : '#4f46e533'};
-  color: ${props => props.isFriday ? '#f59e0b' : '#4f46e5'};
+  background: ${props => (props.isFriday ? '#f59e0b33' : '#4f46e533')};
+  color: ${props => (props.isFriday ? '#f59e0b' : '#4f46e5')};
   margin-top: 2px;
 `;
 
@@ -285,6 +285,10 @@ const PrayerTimes = {
   isha: 'Night',
 };
 
+// Islamic week order: Saturday, Sunday, Monday, Tuesday, Wednesday, Thursday, Friday
+// JS getDay(): 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+const ISLAMIC_WEEK_ORDER = [6, 0, 1, 2, 3, 4, 5];
+
 const PrayerTracker = () => {
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [prayerData, setPrayerData] = useState({});
@@ -300,11 +304,22 @@ const PrayerTracker = () => {
     isha: 'Isha',
   };
 
-  // Get all 7 days of the week (Monday to Sunday)
-  const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 });
-  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  // Build a week starting from the most recent Saturday (start of Islamic week)
+  // We anchor to Saturday of the current week.
+  const getIslamicWeekDays = (referenceDate) => {
+    // Find the Saturday of this week (Saturday is start of Islamic week)
+    const day = referenceDate.getDay(); // 0=Sun ... 6=Sat
+    // How many days back to reach Saturday? If today is Saturday (6), 0. Otherwise (day+1)%7 days back to Saturday
+    const daysSinceSaturday = (day + 1) % 7;
+    const saturday = new Date(referenceDate);
+    saturday.setDate(saturday.getDate() - daysSinceSaturday);
+    saturday.setHours(0, 0, 0, 0);
+    return Array.from({ length: 7 }, (_, i) => addDays(saturday, i));
+  };
 
-  // Islamic day names
+  const weekDays = getIslamicWeekDays(currentWeek);
+
+  // Islamic day names (Arabic)
   const islamicDayNames = {
     Monday: 'الاثنين',
     Tuesday: 'الثلاثاء',
@@ -323,9 +338,11 @@ const PrayerTracker = () => {
     try {
       const startDate = format(weekDays[0], 'yyyy-MM-dd');
       const endDate = format(weekDays[6], 'yyyy-MM-dd');
-      
-      const response = await api.get(`/prayers/range?startDate=${startDate}&endDate=${endDate}`);
-      
+
+      const response = await api.get(
+        `/prayers/range?startDate=${startDate}&endDate=${endDate}`
+      );
+
       const data = {};
       let completed = 0;
       let missed = 0;
@@ -333,17 +350,17 @@ const PrayerTracker = () => {
       let total = 0;
 
       // Initialize all days with empty prayers
-      weekDays.forEach(day => {
+      weekDays.forEach((day) => {
         const dateKey = format(day, 'yyyy-MM-dd');
         data[dateKey] = null;
       });
 
       // Fill in prayer data
-      response.data.prayers.forEach(prayer => {
+      response.data.prayers.forEach((prayer) => {
         const dateKey = format(new Date(prayer.date), 'yyyy-MM-dd');
         data[dateKey] = prayer.prayers;
-        
-        prayer.prayers.forEach(p => {
+
+        prayer.prayers.forEach((p) => {
           total++;
           if (p.status === 'complete') completed++;
           else if (p.status === 'missed') missed++;
@@ -363,32 +380,32 @@ const PrayerTracker = () => {
 
   const handlePrayerToggle = async (date, prayerName, currentStatus) => {
     const newStatus = currentStatus === 'complete' ? 'pending' : 'complete';
-    
+
     try {
       await api.put('/prayers/complete', {
         date: date,
         prayerName: prayerName,
       });
-      
+
       // Update local state
       const dateKey = format(new Date(date), 'yyyy-MM-dd');
-      setPrayerData(prev => {
+      setPrayerData((prev) => {
         const updated = { ...prev };
         if (!updated[dateKey]) {
-          updated[dateKey] = prayerNames.map(name => ({
+          updated[dateKey] = prayerNames.map((name) => ({
             name: name,
             status: name === prayerName ? newStatus : 'pending',
           }));
         } else {
-          updated[dateKey] = updated[dateKey].map(prayer =>
+          updated[dateKey] = updated[dateKey].map((prayer) =>
             prayer.name === prayerName ? { ...prayer, status: newStatus } : prayer
           );
         }
         return updated;
       });
-      
+
       // Update stats
-      setStats(prev => {
+      setStats((prev) => {
         const newStats = { ...prev };
         if (newStatus === 'complete') {
           newStats.completed++;
@@ -399,8 +416,12 @@ const PrayerTracker = () => {
         }
         return newStats;
       });
-      
-      toast.success(`${prayerLabels[prayerName]} ${newStatus === 'complete' ? 'completed! 🙏' : 'marked as pending'}`);
+
+      toast.success(
+        `${prayerLabels[prayerName]} ${
+          newStatus === 'complete' ? 'completed! 🙏' : 'marked as pending'
+        }`
+      );
     } catch (error) {
       toast.error('Failed to update prayer');
     }
@@ -410,7 +431,7 @@ const PrayerTracker = () => {
     const dateKey = format(new Date(date), 'yyyy-MM-dd');
     const prayers = prayerData[dateKey];
     if (!prayers) return 'pending';
-    const prayer = prayers.find(p => p.name === prayerName);
+    const prayer = prayers.find((p) => p.name === prayerName);
     return prayer ? prayer.status : 'pending';
   };
 
@@ -422,7 +443,7 @@ const PrayerTracker = () => {
 
   const changeWeek = (direction) => {
     const newWeek = new Date(currentWeek);
-    newWeek.setDate(newWeek.getDate() + (direction * 7));
+    newWeek.setDate(newWeek.getDate() + direction * 7);
     setCurrentWeek(newWeek);
   };
 
@@ -435,7 +456,7 @@ const PrayerTracker = () => {
   };
 
   const isFriday = (date) => {
-    return date.getDay() === 5; // Friday is day 5 (0 = Sunday)
+    return date.getDay() === 5;
   };
 
   const getCompletionRate = () => {
@@ -444,7 +465,15 @@ const PrayerTracker = () => {
   };
 
   const getDayName = (date) => {
-    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayNames = [
+      'Sunday',
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+    ];
     return dayNames[date.getDay()];
   };
 
@@ -478,15 +507,21 @@ const PrayerTracker = () => {
           <div className="label">Completion Rate</div>
         </StatCard>
         <StatCard>
-          <div className="value" style={{ color: '#10b981' }}>{stats.completed}</div>
+          <div className="value" style={{ color: '#10b981' }}>
+            {stats.completed}
+          </div>
           <div className="label">✅ Completed</div>
         </StatCard>
         <StatCard>
-          <div className="value" style={{ color: '#f59e0b' }}>{stats.pending}</div>
+          <div className="value" style={{ color: '#f59e0b' }}>
+            {stats.pending}
+          </div>
           <div className="label">⏳ Pending</div>
         </StatCard>
         <StatCard>
-          <div className="value" style={{ color: '#ef4444' }}>{stats.missed}</div>
+          <div className="value" style={{ color: '#ef4444' }}>
+            {stats.missed}
+          </div>
           <div className="label">❌ Missed</div>
         </StatCard>
       </StatsSummary>
@@ -498,30 +533,36 @@ const PrayerTracker = () => {
           const isTodayDay = isToday(day);
           const dayName = getDayName(day);
           const arabicName = islamicDayNames[dayName] || dayName;
-          
+
           return (
-            <GridHeader key={index} style={{ 
-              background: isTodayDay ? '#4f46e533' : isFridayDay ? '#f59e0b22' : 'transparent',
-              borderRadius: '8px',
-              padding: '8px',
-              position: 'relative',
-              border: isFridayDay ? '1px solid #f59e0b44' : 'none',
-            }}>
-              <div className="day-name" style={{ 
-                color: isFridayDay ? '#f59e0b' : isTodayDay ? '#4f46e5' : 'inherit',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-              }}>
+            <GridHeader
+              key={index}
+              style={{
+                background: isTodayDay
+                  ? '#4f46e533'
+                  : isFridayDay
+                  ? '#f59e0b22'
+                  : 'transparent',
+                borderRadius: '8px',
+                padding: '8px',
+                position: 'relative',
+                border: isFridayDay ? '1px solid #f59e0b44' : 'none',
+              }}
+            >
+              <div
+                className="day-name"
+                style={{
+                  color: isFridayDay ? '#f59e0b' : isTodayDay ? '#4f46e5' : 'inherit',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                }}
+              >
                 <span>{dayName}</span>
                 <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>{arabicName}</span>
               </div>
-              <div className="day-date">
-                {format(day, 'MMM d')}
-              </div>
-              {isFridayDay && (
-                <SpecialBadge isFriday={true}>🕌 Jummah</SpecialBadge>
-              )}
+              <div className="day-date">{format(day, 'MMM d')}</div>
+              {isFridayDay && <SpecialBadge isFriday={true}>🕌 Jummah</SpecialBadge>}
               {isTodayDay && !isFridayDay && (
                 <SpecialBadge isFriday={false}>Today</SpecialBadge>
               )}
@@ -534,7 +575,12 @@ const PrayerTracker = () => {
             <PrayerName>
               <span className="prayer-label">{prayerLabels[prayerName]}</span>
               <span className="prayer-time">{PrayerTimes[prayerName]}</span>
-              <PrayerNameDisplay style={{ background: PrayerColors[prayerName] + '33', color: PrayerColors[prayerName] }}>
+              <PrayerNameDisplay
+                style={{
+                  background: PrayerColors[prayerName] + '33',
+                  color: PrayerColors[prayerName],
+                }}
+              >
                 {prayerName}
               </PrayerNameDisplay>
             </PrayerName>
@@ -543,22 +589,34 @@ const PrayerTracker = () => {
               const dateStr = format(day, 'yyyy-MM-dd');
               const isTodayDay = isToday(day);
               const isFridayDay = isFriday(day);
-              
+
               return (
                 <PrayerCell key={index}>
                   <PrayerButton
                     status={status}
                     onClick={() => handlePrayerToggle(dateStr, prayerName, status)}
                     disabled={status === 'missed'}
-                    style={{ 
-                      borderColor: status === 'complete' ? '#10b981' : 
-                                   status === 'missed' ? '#ef4444' : 
-                                   isTodayDay ? PrayerColors[prayerName] : 
-                                   isFridayDay ? '#f59e0b' : '#2a3a5a',
-                      background: status === 'complete' ? '#10b98133' : 
-                                   status === 'missed' ? '#ef444433' : 
-                                   isTodayDay ? PrayerColors[prayerName] + '22' : 
-                                   isFridayDay ? '#f59e0b22' : 'transparent'
+                    style={{
+                      borderColor:
+                        status === 'complete'
+                          ? '#10b981'
+                          : status === 'missed'
+                          ? '#ef4444'
+                          : isTodayDay
+                          ? PrayerColors[prayerName]
+                          : isFridayDay
+                          ? '#f59e0b'
+                          : '#2a3a5a',
+                      background:
+                        status === 'complete'
+                          ? '#10b98133'
+                          : status === 'missed'
+                          ? '#ef444433'
+                          : isTodayDay
+                          ? PrayerColors[prayerName] + '22'
+                          : isFridayDay
+                          ? '#f59e0b22'
+                          : 'transparent',
                     }}
                   >
                     {getStatusIcon(status)}
@@ -582,10 +640,18 @@ const PrayerTracker = () => {
           <span className="dot" /> Missed
         </LegendItem>
         <LegendItem color="#4f46e5">
-          <span className="dot" style={{ border: '2px solid #4f46e5', background: 'transparent' }} /> Today
+          <span
+            className="dot"
+            style={{ border: '2px solid #4f46e5', background: 'transparent' }}
+          />{' '}
+          Today
         </LegendItem>
         <LegendItem color="#f59e0b">
-          <span className="dot" style={{ border: '2px solid #f59e0b', background: 'transparent' }} /> 🕌 Jummah (Friday)
+          <span
+            className="dot"
+            style={{ border: '2px solid #f59e0b', background: 'transparent' }}
+          />{' '}
+          🕌 Jummah (Friday)
         </LegendItem>
       </Legend>
     </Container>

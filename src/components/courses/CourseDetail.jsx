@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import styled from 'styled-components';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
-import { FiArrowLeft, FiCheckCircle, FiClock, FiXCircle, FiTrash2 } from 'react-icons/fi';
+import { FiArrowLeft, FiCheckCircle, FiClock, FiXCircle, FiTrash2, FiEdit, FiPlus } from 'react-icons/fi';
 import { format } from 'date-fns';
 
 const Container = styled.div`
@@ -17,10 +17,11 @@ const Header = styled.div`
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 15px;
 
   @media (max-width: 768px) {
     flex-direction: column;
-    gap: 15px;
   }
 `;
 
@@ -51,6 +52,30 @@ const BackButton = styled.button`
 
   &:hover {
     background: ${props => props.theme.surface2};
+  }
+`;
+
+const HeaderActions = styled.div`
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+`;
+
+const EditButton = styled(Link)`
+  padding: 8px 16px;
+  background: ${props => props.theme.primary};
+  color: white;
+  border-radius: 6px;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  transition: all 0.2s;
+
+  &:hover {
+    background: ${props => props.theme.primaryDark};
+    transform: translateY(-2px);
   }
 `;
 
@@ -101,6 +126,36 @@ const ProgressInfo = styled.div`
   justify-content: space-between;
   color: ${props => props.theme.textSecondary};
   font-size: 0.9rem;
+`;
+
+const SectionHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+
+  h3 {
+    font-size: 1.2rem;
+  }
+`;
+
+const AddButton = styled(Link)`
+  padding: 8px 16px;
+  background: ${props => props.theme.primary};
+  color: white;
+  border-radius: 6px;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+
+  &:hover {
+    background: ${props => props.theme.primaryDark};
+    transform: translateY(-2px);
+  }
 `;
 
 const TopicsList = styled.div`
@@ -205,6 +260,10 @@ const EmptyState = styled.div`
   text-align: center;
   padding: 40px;
   color: ${props => props.theme.textSecondary};
+
+  p {
+    margin-bottom: 16px;
+  }
 `;
 
 const CourseDetail = () => {
@@ -224,7 +283,7 @@ const CourseDetail = () => {
     } catch (error) {
       console.error('Error fetching course:', error);
       toast.error('Failed to load course');
-      navigate('/areas');
+      navigate('/courses');
     } finally {
       setLoading(false);
     }
@@ -232,13 +291,25 @@ const CourseDetail = () => {
 
   const updateTopicStatus = async (topicId, currentStatus) => {
     const newStatus = currentStatus === 'complete' ? 'pending' : 'complete';
-    
+
     try {
       await api.put(`/courses/topics/${topicId}`, { status: newStatus });
       toast.success(`Topic marked as ${newStatus}`);
       fetchCourse();
     } catch (error) {
       toast.error('Failed to update status');
+    }
+  };
+
+  const deleteTopic = async (topicId, name) => {
+    if (!window.confirm(`Delete topic "${name}"?`)) return;
+
+    try {
+      await api.delete(`/courses/topics/${topicId}`);
+      toast.success('Topic deleted');
+      fetchCourse();
+    } catch (error) {
+      toast.error('Failed to delete topic');
     }
   };
 
@@ -250,7 +321,7 @@ const CourseDetail = () => {
     try {
       await api.delete(`/courses/${id}`);
       toast.success('Course deleted successfully');
-      navigate('/areas');
+      navigate('/courses');
     } catch (error) {
       toast.error('Failed to delete course');
     }
@@ -272,7 +343,7 @@ const CourseDetail = () => {
     <Container>
       <Header>
         <HeaderLeft>
-          <BackButton onClick={() => navigate('/areas')}>
+          <BackButton onClick={() => navigate('/courses')}>
             <FiArrowLeft />
           </BackButton>
           <div>
@@ -283,9 +354,14 @@ const CourseDetail = () => {
             </div>
           </div>
         </HeaderLeft>
-        <DeleteButton onClick={deleteCourse}>
-          <FiTrash2 /> Delete
-        </DeleteButton>
+        <HeaderActions>
+          <EditButton to={`/courses/${id}/edit`}>
+            <FiEdit /> Edit Course
+          </EditButton>
+          <DeleteButton onClick={deleteCourse}>
+            <FiTrash2 /> Delete
+          </DeleteButton>
+        </HeaderActions>
       </Header>
 
       <ProgressSection>
@@ -298,9 +374,20 @@ const CourseDetail = () => {
         </ProgressBar>
       </ProgressSection>
 
-      <h3 style={{ marginBottom: '16px' }}>Topics</h3>
+      <SectionHeader>
+        <h3>Topics ({totalTopics})</h3>
+        <AddButton to={`/courses/${id}/topics/create`}>
+          <FiPlus /> Add Topic
+        </AddButton>
+      </SectionHeader>
+
       {totalTopics === 0 ? (
-        <EmptyState>No topics in this course yet.</EmptyState>
+        <EmptyState>
+          <p>No topics in this course yet.</p>
+          <AddButton to={`/courses/${id}/topics/create`} style={{ display: 'inline-flex' }}>
+            <FiPlus /> Add First Topic
+          </AddButton>
+        </EmptyState>
       ) : (
         <TopicsList>
           {course.topics.map((topic) => (
@@ -316,7 +403,7 @@ const CourseDetail = () => {
               </div>
               <div className="right">
                 <StatusBadge status={topic.status}>
-                  {topic.status === 'complete' ? <FiCheckCircle /> : 
+                  {topic.status === 'complete' ? <FiCheckCircle /> :
                    topic.status === 'missed' ? <FiXCircle /> : <FiClock />}
                   {' '}{topic.status}
                 </StatusBadge>
@@ -327,6 +414,23 @@ const CourseDetail = () => {
                 >
                   {topic.status === 'complete' ? 'Undo' : 'Complete'}
                 </StatusButton>
+                <button
+                  onClick={() => deleteTopic(topic._id, topic.name)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#ef4444',
+                    cursor: 'pointer',
+                    padding: '6px',
+                    borderRadius: '6px',
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={(e) => (e.target.style.background = '#ef444422')}
+                  onMouseLeave={(e) => (e.target.style.background = 'transparent')}
+                  title="Delete topic"
+                >
+                  <FiTrash2 />
+                </button>
               </div>
             </TopicItem>
           ))}
