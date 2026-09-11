@@ -31,7 +31,11 @@ import {
   Cell,
 } from 'recharts';
 import { format } from 'date-fns';
+import { getDailyMotivation } from '../../utils/motivations';
 
+// ============================================
+// STYLED COMPONENTS
+// ============================================
 const Container = styled.div`
   padding: 20px;
   max-width: 1400px;
@@ -43,7 +47,7 @@ const Container = styled.div`
 `;
 
 const Header = styled.div`
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 
   h1 {
     font-size: 2rem;
@@ -58,6 +62,60 @@ const Header = styled.div`
   @media (max-width: 768px) {
     h1 {
       font-size: 1.4rem;
+    }
+  }
+`;
+
+const MotivationBanner = styled.div`
+  background: linear-gradient(
+    135deg,
+    ${(props) => props.theme.primary}22,
+    ${(props) => props.theme.primary}08
+  );
+  border: 1px solid ${(props) => props.theme.primary}44;
+  border-left: 4px solid ${(props) => props.theme.primary};
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+
+  .icon {
+    font-size: 1.6rem;
+    flex-shrink: 0;
+  }
+
+  .content {
+    flex: 1;
+
+    .label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: ${(props) => props.theme.primary};
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .sentence {
+      font-size: 0.98rem;
+      color: ${(props) => props.theme.text};
+      font-weight: 500;
+      line-height: 1.5;
+      font-style: italic;
+    }
+  }
+
+  @media (max-width: 500px) {
+    padding: 14px 16px;
+
+    .icon {
+      font-size: 1.3rem;
+    }
+
+    .content .sentence {
+      font-size: 0.9rem;
     }
   }
 `;
@@ -224,6 +282,7 @@ const TaskItem = styled.div`
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      color: ${(props) => props.theme.text};
     }
 
     .task-meta {
@@ -580,8 +639,6 @@ const AxisCaption = styled.div`
   }
 `;
 
-const COLORS = ['#4f46e5', '#f59e0b', '#ef4444'];
-
 const PrayerColors = {
   fajer: '#fcd34d',
   duher: '#f59e0b',
@@ -598,7 +655,9 @@ const PrayerLabels = {
   isha: 'Isha',
 };
 
-// Custom Tooltips
+// ============================================
+// CUSTOM TOOLTIPS
+// ============================================
 const LineChartTooltip = ({ active, payload, label }) => {
   if (!active || !payload || !payload.length) return null;
 
@@ -643,6 +702,9 @@ const PieChartTooltip = ({ active, payload, total }) => {
   );
 };
 
+// ============================================
+// MAIN COMPONENT
+// ============================================
 const Dashboard = () => {
   const { user } = useAuth();
   const { theme } = useTheme();
@@ -743,7 +805,17 @@ const Dashboard = () => {
 
       setDailyTasks(sortedTasks);
 
-      const progressData = weeklyData.dailyData.map((day) => ({
+      // ============================================
+      // REORDER WEEK: Saturday → Friday
+      // ============================================
+      const orderedDays = [...weeklyData.dailyData].sort((a, b) => {
+        const da = new Date(a.date).getDay();
+        const db = new Date(b.date).getDay();
+        const order = { 6: 0, 0: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 6 };
+        return order[da] - order[db];
+      });
+
+      const progressData = orderedDays.map((day) => ({
         date: format(new Date(day.date), 'EEE'),
         completed:
           day.topics.completed + day.sessions.completed + day.tasks.completed,
@@ -791,7 +863,8 @@ const Dashboard = () => {
       } else {
         let endpoint;
         if (type === 'topic') endpoint = `/courses/topics/${taskId}`;
-        else if (type === 'session') endpoint = `/books/reading-sessions/${taskId}`;
+        else if (type === 'session')
+          endpoint = `/books/reading-sessions/${taskId}`;
         else if (type === 'task') endpoint = `/goals/tasks/${taskId}`;
         await api.put(endpoint, { status: newStatus });
       }
@@ -816,7 +889,11 @@ const Dashboard = () => {
 
   const pieData = stats
     ? [
-        { name: 'Completed', value: stats.totalCompleted || 0, color: '#4f46e5' },
+        {
+          name: 'Completed',
+          value: stats.totalCompleted || 0,
+          color: '#4f46e5',
+        },
         { name: 'Pending', value: stats.totalPending || 0, color: '#f59e0b' },
         { name: 'Missed', value: stats.totalMissed || 0, color: '#ef4444' },
       ].filter((d) => d.value > 0)
@@ -824,7 +901,9 @@ const Dashboard = () => {
 
   const pieTotal = pieData.reduce((s, p) => s + p.value, 0);
 
-  const completedCount = dailyTasks.filter((t) => t.status === 'complete').length;
+  const completedCount = dailyTasks.filter(
+    (t) => t.status === 'complete'
+  ).length;
   const totalCount = dailyTasks.length;
 
   return (
@@ -833,6 +912,7 @@ const Dashboard = () => {
         <h1>Welcome back, {user?.username}! 👋</h1>
         <p>Here's your progress overview and today's tasks</p>
       </Header>
+
 
       <StatsGrid>
         <StatCard>
@@ -883,6 +963,15 @@ const Dashboard = () => {
 
       <MainGrid>
         <div>
+          
+      {/* Motivation Banner */}
+      <MotivationBanner>
+        <div className="icon">💡</div>
+        <div className="content">
+          <div className="label">Today's Motivation</div>
+          <div className="sentence">{getDailyMotivation()}</div>
+        </div>
+      </MotivationBanner>
           <Section>
             <SectionHeader>
               <h3>
@@ -907,7 +996,11 @@ const Dashboard = () => {
             ) : (
               <TaskList>
                 {dailyTasks.map((task) => (
-                  <TaskItem key={task.id} $status={task.status} $type={task.type}>
+                  <TaskItem
+                    key={task.id}
+                    $status={task.status}
+                    $type={task.type}
+                  >
                     <div className="task-info">
                       <span className="task-icon">{task.icon}</span>
                       <div className="task-details">
@@ -1037,7 +1130,9 @@ const Dashboard = () => {
                     >
                       <span
                         className="dot"
-                        style={{ background: PrayerColors[prayer.prayerName] }}
+                        style={{
+                          background: PrayerColors[prayer.prayerName],
+                        }}
                       />
                       {PrayerLabels[prayer.prayerName]}
                     </span>

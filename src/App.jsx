@@ -16,39 +16,62 @@ import { useTheme } from "./context/ThemeContext";
 import Navbar from "./components/common/Navbar";
 import Login from "./components/auth/Login";
 import Register from "./components/auth/Register";
+//Dashboard components
 import Dashboard from "./components/dashboard/Dashboard";
 import DailyView from "./components/dashboard/DailyView";
 import WeeklyReview from "./components/dashboard/WeeklyReview";
+// area components
 import AreasList from "./components/areas/AreasList";
 import AreaDetail from "./components/areas/AreaDetail";
 import EditArea from "./components/areas/EditArea";
 import CreateArea from "./components/areas/CreateArea";
+// courses components
 import CoursesList from "./components/courses/CoursesList";
 import CreateCourse from "./components/courses/CreateCourse";
 import EditCourse from "./components/courses/EditCourse";
 import CourseDetail from "./components/courses/CourseDetail";
+import CreateTopic from "./components/courses/CreateTopic";
+// books components
 import BooksList from "./components/books/BooksList";
 import CreateBook from "./components/books/CreateBook";
 import EditBook from "./components/books/EditBook";
 import BookDetail from "./components/books/BookDetail";
+import CreateSession from "./components/books/CreateSession";
+//  goales components
 import GoalsList from "./components/goals/GoalsList";
 import CreateGoal from "./components/goals/CreateGoal";
 import EditGoal from "./components/goals/EditGoal";
 import GoalDetail from "./components/goals/GoalDetail";
+import CreateTask from "./components/goals/CreateTask";
+//    other compontnes
 import PrayerTracker from "./components/prayers/PrayerTracker";
 import AdminDashboard from "./components/admin/AdminDashboard";
-import CreateTopic from "./components/courses/CreateTopic";
-import CreateSession from "./components/books/CreateSession";
-import CreateTask from "./components/goals/CreateTask";
 import NotificationsList from "./components/notifications/NotificationsList";
 import NotificationDetail from "./components/notifications/NotificationDetail";
+
+// Public Pages
+import PublicLayout from "./components/public/PublicLayout";
+import Home from "./components/public/Home";
+import About from "./components/public/About";
+import Contact from "./components/public/Contact";
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        Loading...
+      </div>
+    );
   }
 
   if (!isAuthenticated) {
@@ -63,7 +86,18 @@ const AdminRoute = ({ children }) => {
   const { isAuthenticated, user, loading } = useAuth();
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        Loading...
+      </div>
+    );
   }
 
   if (!isAuthenticated || user?.role !== "admin") {
@@ -81,284 +115,292 @@ function App() {
     <StyledProvider theme={currentTheme}>
       <GlobalStyles />
       <Router>
-        <div className="app">
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              duration: 3000,
-              style: {
-                background: currentTheme.surface,
-                color: currentTheme.text,
-              },
-            }}
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            duration: 3000,
+            style: {
+              background: currentTheme.surface,
+              color: currentTheme.text,
+            },
+          }}
+        />
+
+        {/* App navbar — hides itself on public & auth pages */}
+        <Navbar />
+
+        <Routes>
+          {/* ============================================
+              PUBLIC ROUTES (with public navbar + footer)
+              ============================================ */}
+          <Route element={<PublicLayout />}>
+            <Route path="/" element={<Home />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<Contact />} />
+          </Route>
+
+          {/* ============================================
+              AUTH ROUTES (no navbar)
+              ============================================ */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+
+          {/* ============================================
+              DASHBOARD (main app home)
+              ============================================ */}
+          <Route
+            path="/home"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
           />
-          <Navbar />
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
 
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <Navigate to="/home" />
-                </ProtectedRoute>
-              }
-            />
+          {/* Redirect /home → /dashboard (backwards compat) */}
+          <Route
+            path="/dashboard "
+            element={<Navigate to="/home" replace />}
+          />
 
-            <Route
-              path="/home"
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
+          {/* ============================================
+              DAILY VIEW & WEEKLY REVIEW
+              ============================================ */}
+          <Route
+            path="/daily/:date?"
+            element={
+              <ProtectedRoute>
+                <DailyView />
+              </ProtectedRoute>
+            }
+          />
 
-            <Route
-              path="/daily/:date?"
-              element={
-                <ProtectedRoute>
-                  <DailyView />
-                </ProtectedRoute>
-              }
-            />
+          <Route
+            path="/weekly"
+            element={
+              <ProtectedRoute>
+                <WeeklyReview />
+              </ProtectedRoute>
+            }
+          />
 
-            <Route
-              path="/weekly"
-              element={
-                <ProtectedRoute>
-                  <WeeklyReview />
-                </ProtectedRoute>
-              }
-            />
+          {/* ============================================
+              AREAS
+              ============================================ */}
+          <Route
+            path="/areas"
+            element={
+              <ProtectedRoute>
+                <AreasList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/areas/create"
+            element={
+              <ProtectedRoute>
+                <CreateArea />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/areas/:id"
+            element={
+              <ProtectedRoute>
+                <AreaDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/areas/:id/edit"
+            element={
+              <ProtectedRoute>
+                <EditArea />
+              </ProtectedRoute>
+            }
+          />
 
-            <Route
-              path="/areas"
-              element={
-                <ProtectedRoute>
-                  <AreasList />
-                </ProtectedRoute>
-              }
-            />
+          {/* ============================================
+              COURSES
+              ============================================ */}
+          <Route
+            path="/courses"
+            element={
+              <ProtectedRoute>
+                <CoursesList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/courses/create/:areaId"
+            element={
+              <ProtectedRoute>
+                <CreateCourse />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/courses/:id"
+            element={
+              <ProtectedRoute>
+                <CourseDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/courses/:id/edit"
+            element={
+              <ProtectedRoute>
+                <EditCourse />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/courses/:id/topics/create"
+            element={
+              <ProtectedRoute>
+                <CreateTopic />
+              </ProtectedRoute>
+            }
+          />
 
-            <Route
-              path="/areas/create"
-              element={
-                <ProtectedRoute>
-                  <CreateArea />
-                </ProtectedRoute>
-              }
-            />
+          {/* ============================================
+              BOOKS
+              ============================================ */}
+          <Route
+            path="/books"
+            element={
+              <ProtectedRoute>
+                <BooksList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/books/create/:areaId"
+            element={
+              <ProtectedRoute>
+                <CreateBook />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/books/:id"
+            element={
+              <ProtectedRoute>
+                <BookDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/books/:id/edit"
+            element={
+              <ProtectedRoute>
+                <EditBook />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/books/:id/sessions/create"
+            element={
+              <ProtectedRoute>
+                <CreateSession />
+              </ProtectedRoute>
+            }
+          />
 
-            <Route
-              path="/areas/:id"
-              element={
-                <ProtectedRoute>
-                  <AreaDetail />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/courses"
-              element={
-                <ProtectedRoute>
-                  <CoursesList />
-                </ProtectedRoute>
-              }
-            />
+          {/* ============================================
+              GOALS
+              ============================================ */}
+          <Route
+            path="/goals"
+            element={
+              <ProtectedRoute>
+                <GoalsList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/goals/create/:areaId"
+            element={
+              <ProtectedRoute>
+                <CreateGoal />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/goals/:id"
+            element={
+              <ProtectedRoute>
+                <GoalDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/goals/:id/edit"
+            element={
+              <ProtectedRoute>
+                <EditGoal />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/goals/:id/tasks/create"
+            element={
+              <ProtectedRoute>
+                <CreateTask />
+              </ProtectedRoute>
+            }
+          />
 
-            <Route
-              path="/books"
-              element={
-                <ProtectedRoute>
-                  <BooksList />
-                </ProtectedRoute>
-              }
-            />
+          {/* ============================================
+              PRAYERS
+              ============================================ */}
+          <Route
+            path="/prayers"
+            element={
+              <ProtectedRoute>
+                <PrayerTracker />
+              </ProtectedRoute>
+            }
+          />
 
-            <Route
-              path="/goals"
-              element={
-                <ProtectedRoute>
-                  <GoalsList />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/courses"
-              element={
-                <ProtectedRoute>
-                  <CoursesList />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/areas/:id/edit"
-              element={
-                <ProtectedRoute>
-                  <EditArea />
-                </ProtectedRoute>
-              }
-            />
+          {/* ============================================
+              NOTIFICATIONS
+              ============================================ */}
+          <Route
+            path="/notifications"
+            element={
+              <ProtectedRoute>
+                <NotificationsList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/notifications/:id"
+            element={
+              <ProtectedRoute>
+                <NotificationDetail />
+              </ProtectedRoute>
+            }
+          />
 
-            <Route
-              path="/courses/:id/edit"
-              element={
-                <ProtectedRoute>
-                  <EditCourse />
-                </ProtectedRoute>
-              }
-            />
+          {/* ============================================
+              ADMIN
+              ============================================ */}
+          <Route
+            path="/admin"
+            element={
+              <AdminRoute>
+                <AdminDashboard />
+              </AdminRoute>
+            }
+          />
 
-            <Route
-              path="/books/:id/edit"
-              element={
-                <ProtectedRoute>
-                  <EditBook />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/goals/:id/edit"
-              element={
-                <ProtectedRoute>
-                  <EditGoal />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/courses/create/:areaId"
-              element={
-                <ProtectedRoute>
-                  <CreateCourse />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/courses/:id"
-              element={
-                <ProtectedRoute>
-                  <CourseDetail />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/courses/:id/topics/create"
-              element={
-                <ProtectedRoute>
-                  <CreateTopic />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/books"
-              element={
-                <ProtectedRoute>
-                  <BooksList />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/books/create/:areaId"
-              element={
-                <ProtectedRoute>
-                  <CreateBook />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/books/:id"
-              element={
-                <ProtectedRoute>
-                  <BookDetail />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/books/:id/sessions/create"
-              element={
-                <ProtectedRoute>
-                  <CreateSession />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/goals"
-              element={
-                <ProtectedRoute>
-                  <GoalsList />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/goals/create/:areaId"
-              element={
-                <ProtectedRoute>
-                  <CreateGoal />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/goals/:id/tasks/create"
-              element={
-                <ProtectedRoute>
-                  <CreateTask />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/goals/:id"
-              element={
-                <ProtectedRoute>
-                  <GoalDetail />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/prayers"
-              element={
-                <ProtectedRoute>
-                  <PrayerTracker />
-                </ProtectedRoute>
-              }
-            />
-            {/* Notification Routes */}
-            <Route
-              path="/notifications"
-              element={
-                <ProtectedRoute>
-                  <NotificationsList />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/notifications/:id"
-              element={
-                <ProtectedRoute>
-                  <NotificationDetail />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin"
-              element={
-                <AdminRoute>
-                  <AdminDashboard />
-                </AdminRoute>
-              }
-            />
-          </Routes>
-        </div>
+          {/* ============================================
+              404 — Fallback
+              ============================================ */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </Router>
     </StyledProvider>
   );

@@ -194,9 +194,6 @@ const MobileMenuButton = styled.button`
   }
 `;
 
-/* ============================================
-   MOBILE MENU (Slide-in drawer)
-   ============================================ */
 const MobileOverlay = styled.div`
   position: fixed;
   top: 70px;
@@ -205,8 +202,8 @@ const MobileOverlay = styled.div`
   bottom: 0;
   background: rgba(0, 0, 0, 0.6);
   z-index: 998;
-  opacity: ${(props) => (props.show ? 1 : 0)};
-  visibility: ${(props) => (props.show ? 'visible' : 'hidden')};
+  opacity: ${(props) => (props.$show ? 1 : 0)};
+  visibility: ${(props) => (props.$show ? 'visible' : 'hidden')};
   transition: all 0.3s ease;
   backdrop-filter: blur(4px);
 `;
@@ -224,7 +221,7 @@ const MobileMenu = styled.div`
   display: flex;
   flex-direction: column;
   padding: 20px 0;
-  transform: translateX(${(props) => (props.show ? '0' : '100%')});
+  transform: translateX(${(props) => (props.$show ? '0' : '100%')});
   transition: transform 0.3s ease;
   overflow-y: auto;
 
@@ -315,9 +312,12 @@ const Navbar = () => {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Hide navbar on login/register
-  const authPages = ['/login', '/register'];
-  const hideNav = authPages.includes(location.pathname);
+  // ============================================
+  // Hide the APP navbar on public + auth pages
+  // (the public navbar/footer is rendered by PublicLayout)
+  // ============================================
+  const hiddenPages = ['/', '/about', '/contact', '/login', '/register'];
+  const hideNav = hiddenPages.includes(location.pathname);
 
   // Close mobile menu when route changes
   useEffect(() => {
@@ -345,7 +345,7 @@ const Navbar = () => {
   };
 
   const navItems = [
-    { to: '/home', label: 'Home', icon: <FiHome /> },
+    { to: '/dashboard', label: 'Dashboard', icon: <FiHome /> },
     { to: '/areas', label: 'Areas', icon: <FiGrid /> },
     { to: '/courses', label: 'Courses', icon: <FiBookOpen /> },
     { to: '/books', label: 'Books', icon: <FiBook /> },
@@ -362,15 +362,14 @@ const Navbar = () => {
   return (
     <>
       <Nav>
-        <Logo to="/home">
+        <Logo to="/dashboard">
           <img src="/favicon.svg" alt="Discipline Logo" />
           <span>Discipline</span>
         </Logo>
 
-        {/* Desktop nav links */}
         <NavLinks>
           {navItems
-            .filter((item) => item.to !== '/notifications') // Bell handles this on desktop
+            .filter((item) => item.to !== '/notifications')
             .map((item) => (
               <NavLink
                 key={item.to}
@@ -405,11 +404,12 @@ const Navbar = () => {
         </RightSection>
       </Nav>
 
-      {/* Mobile overlay */}
-      <MobileOverlay show={mobileOpen} onClick={() => setMobileOpen(false)} />
+      <MobileOverlay
+        $show={mobileOpen}
+        onClick={() => setMobileOpen(false)}
+      />
 
-      {/* Mobile drawer */}
-      <MobileMenu show={mobileOpen}>
+      <MobileMenu $show={mobileOpen}>
         <MobileUserInfo>
           <div className="avatar">
             <FiUser />
