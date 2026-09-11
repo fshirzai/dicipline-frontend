@@ -345,7 +345,7 @@ const Navbar = () => {
   };
 
   const navItems = [
-    { to: '/dashboard', label: 'Dashboard', icon: <FiHome /> },
+    { to: '/home', label: 'Dashboard', icon: <FiHome /> },
     { to: '/areas', label: 'Areas', icon: <FiGrid /> },
     { to: '/courses', label: 'Courses', icon: <FiBookOpen /> },
     { to: '/books', label: 'Books', icon: <FiBook /> },
@@ -362,7 +362,7 @@ const Navbar = () => {
   return (
     <>
       <Nav>
-        <Logo to="/dashboard">
+        <Logo to="/home">
           <img src="/favicon.svg" alt="Discipline Logo" />
           <span>Discipline</span>
         </Logo>
