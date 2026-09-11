@@ -40,6 +40,8 @@ import AdminDashboard from "./components/admin/AdminDashboard";
 import CreateTopic from "./components/courses/CreateTopic";
 import CreateSession from "./components/books/CreateSession";
 import CreateTask from "./components/goals/CreateTask";
+import NotificationsList from "./components/notifications/NotificationsList";
+import NotificationDetail from "./components/notifications/NotificationDetail";
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -329,7 +331,24 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            {/* Notification Routes */}
+            <Route
+              path="/notifications"
+              element={
+                <ProtectedRoute>
+                  <NotificationsList />
+                </ProtectedRoute>
+              }
+            />
 
+            <Route
+              path="/notifications/:id"
+              element={
+                <ProtectedRoute>
+                  <NotificationDetail />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/admin"
               element={

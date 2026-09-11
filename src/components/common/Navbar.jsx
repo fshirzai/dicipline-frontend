@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
-import styled from "styled-components";
-import NotificationBell from "../notifications/NotificationBell";
-import { useAuth } from "../../hooks/useAuth";
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import styled from 'styled-components';
+import NotificationBell from '../notifications/NotificationBell';
+import { useAuth } from '../../hooks/useAuth';
 import {
   FiHome,
   FiBook,
@@ -16,8 +16,9 @@ import {
   FiGrid,
   FiMenu,
   FiX,
-} from "react-icons/fi";
-import ThemeToggle from "./ThemeToggle";
+  FiBell,
+} from 'react-icons/fi';
+import ThemeToggle from './ThemeToggle';
 
 const Nav = styled.nav`
   position: fixed;
@@ -205,7 +206,7 @@ const MobileOverlay = styled.div`
   background: rgba(0, 0, 0, 0.6);
   z-index: 998;
   opacity: ${(props) => (props.show ? 1 : 0)};
-  visibility: ${(props) => (props.show ? "visible" : "hidden")};
+  visibility: ${(props) => (props.show ? 'visible' : 'hidden')};
   transition: all 0.3s ease;
   backdrop-filter: blur(4px);
 `;
@@ -223,7 +224,7 @@ const MobileMenu = styled.div`
   display: flex;
   flex-direction: column;
   padding: 20px 0;
-  transform: translateX(${(props) => (props.show ? "0" : "100%")});
+  transform: translateX(${(props) => (props.show ? '0' : '100%')});
   transition: transform 0.3s ease;
   overflow-y: auto;
 
@@ -315,7 +316,7 @@ const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // Hide navbar on login/register
-  const authPages = ["/login", "/register"];
+  const authPages = ['/login', '/register'];
   const hideNav = authPages.includes(location.pathname);
 
   // Close mobile menu when route changes
@@ -326,12 +327,12 @@ const Navbar = () => {
   // Prevent body scroll when mobile menu is open
   useEffect(() => {
     if (mobileOpen) {
-      document.body.style.overflow = "hidden";
+      document.body.style.overflow = 'hidden';
     } else {
-      document.body.style.overflow = "";
+      document.body.style.overflow = '';
     }
     return () => {
-      document.body.style.overflow = "";
+      document.body.style.overflow = '';
     };
   }, [mobileOpen]);
 
@@ -340,21 +341,22 @@ const Navbar = () => {
   const handleLogout = () => {
     setMobileOpen(false);
     logout();
-    navigate("/login");
+    navigate('/login');
   };
 
   const navItems = [
-    { to: "/dashboard", label: "Dashboard", icon: <FiHome /> },
-    { to: "/areas", label: "Areas", icon: <FiGrid /> },
-    { to: "/courses", label: "Courses", icon: <FiBookOpen /> },
-    { to: "/books", label: "Books", icon: <FiBook /> },
-    { to: "/goals", label: "Goals", icon: <FiTarget /> },
-    { to: "/prayers", label: "Prayers", icon: <FiCalendar /> },
-    { to: "/weekly", label: "Weekly", icon: <FiPieChart /> },
+    { to: '/dashboard', label: 'Dashboard', icon: <FiHome /> },
+    { to: '/areas', label: 'Areas', icon: <FiGrid /> },
+    { to: '/courses', label: 'Courses', icon: <FiBookOpen /> },
+    { to: '/books', label: 'Books', icon: <FiBook /> },
+    { to: '/goals', label: 'Goals', icon: <FiTarget /> },
+    { to: '/prayers', label: 'Prayers', icon: <FiCalendar /> },
+    { to: '/weekly', label: 'Weekly', icon: <FiPieChart /> },
+    { to: '/notifications', label: 'Notifications', icon: <FiBell /> },
   ];
 
-  if (user?.role === "admin") {
-    navItems.push({ to: "/admin", label: "Admin", icon: <FiUsers /> });
+  if (user?.role === 'admin') {
+    navItems.push({ to: '/admin', label: 'Admin', icon: <FiUsers /> });
   }
 
   return (
@@ -367,15 +369,17 @@ const Navbar = () => {
 
         {/* Desktop nav links */}
         <NavLinks>
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={location.pathname === item.to ? "active" : ""}
-            >
-              {item.icon} {item.label}
-            </NavLink>
-          ))}
+          {navItems
+            .filter((item) => item.to !== '/notifications') // Bell handles this on desktop
+            .map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={location.pathname === item.to ? 'active' : ''}
+              >
+                {item.icon} {item.label}
+              </NavLink>
+            ))}
         </NavLinks>
 
         <RightSection>
@@ -402,10 +406,7 @@ const Navbar = () => {
       </Nav>
 
       {/* Mobile overlay */}
-      <MobileOverlay
-        show={mobileOpen}
-        onClick={() => setMobileOpen(false)}
-      />
+      <MobileOverlay show={mobileOpen} onClick={() => setMobileOpen(false)} />
 
       {/* Mobile drawer */}
       <MobileMenu show={mobileOpen}>
@@ -415,8 +416,8 @@ const Navbar = () => {
           </div>
           <div>
             <div>{user?.username}</div>
-            <div style={{ fontSize: "0.75rem", opacity: 0.7, fontWeight: 400 }}>
-              {user?.role === "admin" ? "Administrator" : "User"}
+            <div style={{ fontSize: '0.75rem', opacity: 0.7, fontWeight: 400 }}>
+              {user?.role === 'admin' ? 'Administrator' : 'User'}
             </div>
           </div>
         </MobileUserInfo>
@@ -425,7 +426,7 @@ const Navbar = () => {
           <MobileNavLink
             key={item.to}
             to={item.to}
-            className={location.pathname === item.to ? "active" : ""}
+            className={location.pathname === item.to ? 'active' : ''}
           >
             {item.icon} {item.label}
           </MobileNavLink>

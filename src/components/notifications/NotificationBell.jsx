@@ -2,7 +2,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import api from '../../services/api';
-import { FiBell, FiCheck, FiTrash2 } from 'react-icons/fi';
+import {
+  FiBell,
+  FiCheck,
+  FiTrash2,
+  FiSend,
+  FiBook,
+  FiBookOpen,
+  FiTarget,
+  FiChevronRight,
+} from 'react-icons/fi';
 import { formatDistanceToNow } from 'date-fns';
 
 const BellWrapper = styled.div`
@@ -40,27 +49,45 @@ const Badge = styled.span`
   min-width: 18px;
   text-align: center;
   line-height: 1;
+  box-shadow: 0 0 0 2px ${(props) => props.theme.navbarBg};
 `;
 
 const Dropdown = styled.div`
   position: absolute;
   top: calc(100% + 10px);
   right: 0;
-  width: 380px;
-  max-width: 90vw;
+  width: 400px;
+  max-width: 92vw;
   background: ${(props) => props.theme.surface};
   border: 1px solid ${(props) => props.theme.border};
   border-radius: 12px;
   box-shadow: ${(props) => props.theme.shadowHover};
   z-index: 2000;
-  max-height: 500px;
+  max-height: 520px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  animation: fadeIn 0.2s ease;
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 
   @media (max-width: 500px) {
-    width: 320px;
-    right: -100px;
+    width: 340px;
+    right: -60px;
+  }
+
+  @media (max-width: 380px) {
+    width: 300px;
+    right: -80px;
   }
 `;
 
@@ -68,24 +95,39 @@ const DropdownHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
+  padding: 14px 16px;
   border-bottom: 1px solid ${(props) => props.theme.border};
+  flex-shrink: 0;
 
   h4 {
     font-size: 1rem;
     color: ${(props) => props.theme.text};
+    margin: 0;
   }
 
-  button {
-    background: transparent;
-    border: none;
-    color: ${(props) => props.theme.primary};
-    font-size: 0.8rem;
-    cursor: pointer;
-    font-weight: 600;
+  .actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
 
-    &:hover {
-      text-decoration: underline;
+    button,
+    a {
+      background: transparent;
+      border: none;
+      color: ${(props) => props.theme.primary};
+      font-size: 0.8rem;
+      cursor: pointer;
+      font-weight: 600;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0;
+      transition: all 0.2s;
+
+      &:hover {
+        opacity: 0.8;
+      }
     }
   }
 `;
@@ -96,6 +138,10 @@ const NotificationList = styled.div`
 
   &::-webkit-scrollbar {
     width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
   }
 
   &::-webkit-scrollbar-thumb {
@@ -109,8 +155,13 @@ const NotificationItem = styled.div`
   border-bottom: 1px solid ${(props) => props.theme.border};
   cursor: pointer;
   transition: all 0.2s;
-  background: ${(props) => (props.unread ? props.theme.primary + '11' : 'transparent')};
+  background: ${(props) =>
+    props.unread ? props.theme.primary + '11' : 'transparent'};
   position: relative;
+
+  &:last-child {
+    border-bottom: none;
+  }
 
   &:hover {
     background: ${(props) => props.theme.surface2};
@@ -125,32 +176,48 @@ const NotificationItem = styled.div`
 
     .title {
       font-weight: 600;
-      font-size: 0.9rem;
+      font-size: 0.88rem;
       color: ${(props) => props.theme.text};
       flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+
+      .type-icon {
+        flex-shrink: 0;
+        font-size: 0.9rem;
+        color: ${(props) => {
+          if (props.type === 'admin_broadcast') return props.theme.primary;
+          if (props.type === 'new_course') return '#4f46e5';
+          if (props.type === 'new_book') return '#10b981';
+          if (props.type === 'new_goal') return '#f59e0b';
+          return props.theme.textSecondary;
+        }};
+      }
     }
 
     .time {
       font-size: 0.7rem;
       color: ${(props) => props.theme.textSecondary};
       white-space: nowrap;
+      flex-shrink: 0;
     }
   }
 
   .message {
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     color: ${(props) => props.theme.textSecondary};
     line-height: 1.4;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    margin-bottom: 6px;
   }
 
   .sender {
     font-size: 0.7rem;
     color: ${(props) => props.theme.primary};
-    margin-top: 4px;
     font-weight: 600;
   }
 
@@ -167,22 +234,26 @@ const NotificationItem = styled.div`
   }
 
   .icon-btn {
-    background: transparent;
-    border: none;
+    background: ${(props) => props.theme.surface};
+    border: 1px solid ${(props) => props.theme.border};
     color: ${(props) => props.theme.textSecondary};
     cursor: pointer;
     padding: 4px;
-    border-radius: 4px;
+    border-radius: 6px;
     display: flex;
     align-items: center;
+    transition: all 0.2s;
 
     &:hover {
-      background: ${(props) => props.theme.border};
+      background: ${(props) => props.theme.primary};
+      color: white;
+      border-color: ${(props) => props.theme.primary};
     }
 
     &.delete:hover {
-      background: ${(props) => props.theme.danger}22;
-      color: ${(props) => props.theme.danger};
+      background: ${(props) => props.theme.danger};
+      border-color: ${(props) => props.theme.danger};
+      color: white;
     }
   }
 `;
@@ -193,7 +264,7 @@ const UnreadDot = styled.span`
   height: 8px;
   border-radius: 50%;
   background: ${(props) => props.theme.primary};
-  margin-right: 6px;
+  flex-shrink: 0;
 `;
 
 const EmptyState = styled.div`
@@ -209,6 +280,27 @@ const EmptyState = styled.div`
 
   p {
     font-size: 0.9rem;
+    margin: 0;
+  }
+`;
+
+const FooterLink = styled(Link)`
+  padding: 12px 16px;
+  text-align: center;
+  color: ${(props) => props.theme.primary};
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  border-top: 1px solid ${(props) => props.theme.border};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s;
+  flex-shrink: 0;
+
+  &:hover {
+    background: ${(props) => props.theme.primary}11;
   }
 `;
 
@@ -216,7 +308,6 @@ const NotificationBell = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(false);
   const wrapperRef = useRef(null);
   const navigate = useNavigate();
 
@@ -241,7 +332,7 @@ const NotificationBell = () => {
   const fetchNotifications = async () => {
     try {
       const res = await api.get('/notifications');
-      setNotifications(res.data.notifications);
+      setNotifications(res.data.notifications.slice(0, 8)); // Show only 8 in dropdown
       setUnreadCount(res.data.unreadCount);
     } catch (error) {
       // Silent fail
@@ -260,6 +351,7 @@ const NotificationBell = () => {
   };
 
   const handleMarkRead = async (id, e) => {
+    e?.preventDefault();
     e?.stopPropagation();
     try {
       await api.put(`/notifications/${id}/read`);
@@ -273,12 +365,12 @@ const NotificationBell = () => {
   };
 
   const handleDelete = async (id, e) => {
-    e.stopPropagation();
+    e?.preventDefault();
+    e?.stopPropagation();
     try {
       await api.delete(`/notifications/${id}`);
-      setNotifications((prev) => prev.filter((n) => n._id !== id));
-      // Recalculate unread
       const removed = notifications.find((n) => n._id === id);
+      setNotifications((prev) => prev.filter((n) => n._id !== id));
       if (removed && !removed.isRead) {
         setUnreadCount((prev) => Math.max(0, prev - 1));
       }
@@ -287,21 +379,24 @@ const NotificationBell = () => {
     }
   };
 
-  const handleNotificationClick = async (notif) => {
-    if (!notif.isRead) {
-      await handleMarkRead(notif._id);
-    }
-
-    // Navigate based on type
-    if (notif.relatedModel === 'Course' && notif.relatedId) {
-      navigate(`/courses/${notif.relatedId}`);
-    } else if (notif.relatedModel === 'Book' && notif.relatedId) {
-      navigate(`/books/${notif.relatedId}`);
-    } else if (notif.relatedModel === 'Goal' && notif.relatedId) {
-      navigate(`/goals/${notif.relatedId}`);
-    }
-
+  const handleNotificationClick = (notif) => {
     setIsOpen(false);
+    navigate(`/notifications/${notif._id}`);
+  };
+
+  const getIcon = (type) => {
+    switch (type) {
+      case 'admin_broadcast':
+        return <FiSend className="type-icon" />;
+      case 'new_course':
+        return <FiBookOpen className="type-icon" />;
+      case 'new_book':
+        return <FiBook className="type-icon" />;
+      case 'new_goal':
+        return <FiTarget className="type-icon" />;
+      default:
+        return <FiBell className="type-icon" />;
+    }
   };
 
   return (
@@ -315,9 +410,11 @@ const NotificationBell = () => {
         <Dropdown>
           <DropdownHeader>
             <h4>Notifications</h4>
-            {unreadCount > 0 && (
-              <button onClick={handleMarkAllRead}>Mark all read</button>
-            )}
+            <div className="actions">
+              {unreadCount > 0 && (
+                <button onClick={handleMarkAllRead}>Mark all read</button>
+              )}
+            </div>
           </DropdownHeader>
 
           <NotificationList>
@@ -331,11 +428,13 @@ const NotificationBell = () => {
                 <NotificationItem
                   key={notif._id}
                   unread={!notif.isRead}
+                  type={notif.type}
                   onClick={() => handleNotificationClick(notif)}
                 >
                   <div className="header">
                     <div className="title">
                       {!notif.isRead && <UnreadDot />}
+                      {getIcon(notif.type)}
                       {notif.title}
                     </div>
                     <div className="time">
@@ -344,9 +443,13 @@ const NotificationBell = () => {
                       })}
                     </div>
                   </div>
+
                   <div className="message">{notif.message}</div>
+
                   {notif.type === 'admin_broadcast' && (
-                    <div className="sender">From: {notif.senderName || 'Admin'}</div>
+                    <div className="sender">
+                      📢 From {notif.senderName || 'Admin'}
+                    </div>
                   )}
 
                   <div className="actions">
@@ -356,7 +459,7 @@ const NotificationBell = () => {
                         title="Mark as read"
                         onClick={(e) => handleMarkRead(notif._id, e)}
                       >
-                        <FiCheck size={14} />
+                        <FiCheck size={12} />
                       </button>
                     )}
                     <button
@@ -364,13 +467,17 @@ const NotificationBell = () => {
                       title="Delete"
                       onClick={(e) => handleDelete(notif._id, e)}
                     >
-                      <FiTrash2 size={14} />
+                      <FiTrash2 size={12} />
                     </button>
                   </div>
                 </NotificationItem>
               ))
             )}
           </NotificationList>
+
+          <FooterLink to="/notifications" onClick={() => setIsOpen(false)}>
+            View all notifications <FiChevronRight size={14} />
+          </FooterLink>
         </Dropdown>
       )}
     </BellWrapper>
