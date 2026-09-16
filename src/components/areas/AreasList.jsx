@@ -15,10 +15,23 @@ const Header = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
+  margin-top:60px;
+  margin-bottom:30px;
+  gap: 16px;
 
   h1 {
     font-size: 2rem;
+  }
+
+  @media (max-width: 600px) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+
+    h1 {
+      font-size: 1.5rem;
+      text-align: center;
+    }
   }
 `;
 
@@ -30,14 +43,20 @@ const CreateButton = styled(Link)`
   text-decoration: none;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   font-weight: 600;
   transition: all 0.2s;
+  white-space: nowrap;
 
   &:hover {
     background: ${props => props.theme.primaryDark};
     transform: translateY(-2px);
     box-shadow: ${props => props.theme.shadowHover};
+  }
+
+  @media (max-width: 600px) {
+    width: 100%;
   }
 `;
 
@@ -45,6 +64,10 @@ const Grid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 20px;
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 const Card = styled.div`
@@ -89,6 +112,7 @@ const Stats = styled.div`
   gap: 20px;
   padding-top: 16px;
   border-top: 1px solid ${props => props.theme.border};
+  flex-wrap: wrap;
 `;
 
 const Stat = styled.div`
@@ -183,7 +207,12 @@ const AreasList = () => {
 
   return (
     <Container>
-      
+      <Header>
+        <h1>📚 My Areas</h1>
+        <CreateButton to="/areas/create">
+          <FiPlus /> New Area
+        </CreateButton>
+      </Header>
 
       {areas.length === 0 ? (
         <EmptyState>
@@ -194,13 +223,7 @@ const AreasList = () => {
             <FiPlus /> Create Area
           </CreateButton>
         </EmptyState>
-      ) : (<div>
-        <Header>
-        <h1>📚 My Areas</h1>
-        <CreateButton to="/areas/create">
-          <FiPlus /> New Area
-        </CreateButton>
-      </Header>
+      ) : (
         <Grid>
           {areas.map((area) => (
             <Card key={area._id}>
@@ -230,7 +253,6 @@ const AreasList = () => {
             </Card>
           ))}
         </Grid>
-        </div>
       )}
     </Container>
   );
