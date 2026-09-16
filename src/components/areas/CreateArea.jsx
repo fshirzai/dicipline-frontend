@@ -1,4 +1,3 @@
-// pages/areas/CreateArea.jsx - Complete Updated
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
@@ -32,9 +31,6 @@ const BackButton = styled.button`
   padding: 8px;
   border-radius: 8px;
   transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 
   &:hover {
     background: ${props => props.theme.surface2};
@@ -57,12 +53,6 @@ const FormGroup = styled.div`
     margin-bottom: 6px;
     font-weight: 600;
     color: ${props => props.theme.text};
-  }
-
-  .help {
-    font-size: 0.8rem;
-    color: ${props => props.theme.textSecondary};
-    margin-top: 4px;
   }
 `;
 
@@ -100,32 +90,6 @@ const TextArea = styled.textarea`
     outline: none;
     border-color: ${props => props.theme.primary};
     box-shadow: 0 0 0 3px ${props => props.theme.primary}33;
-  }
-`;
-
-const ColorPicker = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 8px;
-`;
-
-const ColorOption = styled.button`
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 3px solid ${props => props.$selected ? props.theme.primary : 'transparent'};
-  background: ${props => props.$color};
-  cursor: pointer;
-  transition: all 0.2s;
-  padding: 0;
-
-  &:hover {
-    transform: scale(1.15);
-  }
-
-  &:focus {
-    outline: none;
   }
 `;
 
@@ -167,28 +131,12 @@ const ErrorMessage = styled.div`
   margin-bottom: 16px;
 `;
 
-const AREA_COLORS = [
-  '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EF4444',
-  '#14B8A6', '#F472B6', '#6366F1', '#F97316', '#06B6D4'
-];
-
 const CreateArea = () => {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    color: AREA_COLORS[0],
-    icon: '',
-  });
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -196,28 +144,12 @@ const CreateArea = () => {
     setLoading(true);
 
     try {
-      // Send proper data to backend (using `name` not `title`)
-      const payload = {
-        name: formData.name,
-        description: formData.description || undefined,
-        color: formData.color,
-        icon: formData.icon || undefined,
-      };
-
-      const response = await api.post('/areas', payload);
-      
-      if (response.data.success) {
-        toast.success('Area created successfully! 🎉');
-        navigate('/areas');
-      } else {
-        throw new Error(response.data.error?.message || 'Failed to create area');
-      }
+      await api.post('/areas', { title, description });
+      toast.success('Area created successfully! 🎉');
+      navigate('/areas');
     } catch (error) {
-      const message = error.response?.data?.error?.message || 
-                      error.response?.data?.message || 
-                      'Failed to create area';
-      setError(message);
-      toast.error(message);
+      setError(error.response?.data?.message || 'Failed to create area');
+      toast.error('Failed to create area');
     } finally {
       setLoading(false);
     }
@@ -236,57 +168,26 @@ const CreateArea = () => {
         {error && <ErrorMessage>{error}</ErrorMessage>}
 
         <FormGroup>
-          <label>Area Name *</label>
+          <label>Area Title *</label>
           <Input
             type="text"
-            name="name"
-            placeholder="e.g., Islamic Studies, Career, Health"
-            value={formData.name}
-            onChange={handleChange}
+            placeholder="Enter area title (e.g., 'Islamic Studies')"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
             required
             maxLength={100}
           />
-          <div className="help">Give your area a clear, memorable name</div>
         </FormGroup>
 
         <FormGroup>
-          <label>Description</label>
+          <label>Description *</label>
           <TextArea
-            name="description"
-            placeholder="Describe what this area covers (e.g., 'Courses, books, and goals related to Islamic studies')"
-            value={formData.description}
-            onChange={handleChange}
+            placeholder="Describe your area (e.g., 'Courses, books, and goals related to Islamic studies')"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            required
             maxLength={500}
           />
-          <div className="help">Optional - helps you remember the purpose</div>
-        </FormGroup>
-
-        <FormGroup>
-          <label>Icon (emoji)</label>
-          <Input
-            type="text"
-            name="icon"
-            placeholder="📚 or 🎯 or 💪"
-            value={formData.icon}
-            onChange={handleChange}
-            maxLength={10}
-          />
-          <div className="help">Optional - pick an emoji to represent this area</div>
-        </FormGroup>
-
-        <FormGroup>
-          <label>Color</label>
-          <ColorPicker>
-            {AREA_COLORS.map((color) => (
-              <ColorOption
-                key={color}
-                type="button"
-                $color={color}
-                $selected={formData.color === color}
-                onClick={() => setFormData({ ...formData, color })}
-              />
-            ))}
-          </ColorPicker>
         </FormGroup>
 
         <Button type="submit" disabled={loading}>
