@@ -183,12 +183,7 @@ const AreasList = () => {
 
   return (
     <Container>
-      <Header>
-        <h1>📚 My Areas</h1>
-        <CreateButton to="/areas/create">
-          <FiPlus /> New Area
-        </CreateButton>
-      </Header>
+      
 
       {areas.length === 0 ? (
         <EmptyState>
@@ -199,7 +194,13 @@ const AreasList = () => {
             <FiPlus /> Create Area
           </CreateButton>
         </EmptyState>
-      ) : (
+      ) : (<div>
+        <Header>
+        <h1>📚 My Areas</h1>
+        <CreateButton to="/areas/create">
+          <FiPlus /> New Area
+        </CreateButton>
+      </Header>
         <Grid>
           {areas.map((area) => (
             <Card key={area._id}>
@@ -229,6 +230,7 @@ const AreasList = () => {
             </Card>
           ))}
         </Grid>
+        </div>
       )}
     </Container>
   );
